@@ -23,7 +23,7 @@ export default function RecordDetails({ images, record, prices, pricesLoading, c
         </dl>
         <div className="price-cards">
           <div className="price-card">
-            <small>Wert (VG+)</small>
+            <small>Wert (NM)</small>
             <strong>{pricesLoading && prices?.value == null ? '…' : money(prices?.value)}</strong>
           </div>
           <div className="price-card">
