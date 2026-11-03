@@ -17,7 +17,7 @@ kostenlosen [Supabase](https://supabase.com)-Datenbank, gehostet wird über GitH
 - **Gemeinsames Konto:** Ein Login, auf beliebig vielen Geräten.
 
 **Zum Wert:** Discogs bietet den Median-Verkaufspreis nicht über die API an. Als „Wert“ zeigt die App deshalb die
-Discogs-Preisempfehlung für den Zustand *Near Mint (NM)*.
+Discogs-Preisempfehlung für den Zustand *Very Good Plus (VG+)*.
 
 ## Einrichtung (einmalig, ca. 15 Minuten)
 

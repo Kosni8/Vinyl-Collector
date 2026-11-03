@@ -14,7 +14,7 @@ const API = 'https://api.discogs.com'
 const USER_AGENT = 'VinylCollectorPWA/1.0 +https://github.com/Kosni8/Vinyl-Collector'
 const FOLDER_NAME = 'Vinyl Collector'
 const CURRENCY = 'EUR'
-const VALUE_CONDITION = 'Near Mint (NM or M-)'
+const VALUE_CONDITION = 'Very Good Plus (VG+)'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',

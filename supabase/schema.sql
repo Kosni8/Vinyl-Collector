@@ -46,7 +46,7 @@ create table if not exists public.collection_items (
   signed               boolean not null default false,
   -- derived
   spine_color          text,               -- dominant cover colour, used on the home shelf
-  value_eur            numeric(10,2),      -- Discogs price suggestion (Near Mint)
+  value_eur            numeric(10,2),      -- Discogs price suggestion (VG+)
   lowest_price_eur     numeric(10,2),
   num_for_sale         int,
   prices_updated_at    timestamptz,
