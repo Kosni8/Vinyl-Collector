@@ -3,6 +3,7 @@ import { useData } from '../lib/store.jsx'
 import RecordRow from '../components/RecordRow.jsx'
 import { SortIcon, FilterIcon, RefreshIcon } from '../components/Icons.jsx'
 import Sheet from '../components/Sheet.jsx'
+import SearchField from '../components/SearchField.jsx'
 import { VinylDot } from '../components/VinylDot.jsx'
 import { money, VINYL_PATTERNS, patternName } from '../lib/format.js'
 
@@ -78,7 +79,7 @@ export default function Collection() {
         </p>
       </header>
       <div className="toolbar sticky">
-        <input className="search-input" type="search" placeholder="Album oder Künstler suchen" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchField placeholder="Album oder Künstler suchen" value={q} onChange={setQ} />
         <div className="row">
           <button className={'chip filter-btn' + (activeFilters ? ' on' : '')} onClick={() => setFilterOpen(true)}>
             <FilterIcon width={16} height={16} /> Filter{activeFilters ? ` (${activeFilters})` : ''}

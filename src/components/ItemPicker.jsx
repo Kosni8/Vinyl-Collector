@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import Sheet from './Sheet.jsx'
+import SearchField from './SearchField.jsx'
 import { useData } from '../lib/store.jsx'
 
 /** Lets the user choose a record from the collection. */
@@ -15,7 +16,7 @@ export default function ItemPicker({ open, onClose, onPick, title = 'Platte wäh
 
   return (
     <Sheet open={open} onClose={onClose} title={title} full>
-      <input className="search-input" placeholder="Album oder Künstler suchen" value={q} onChange={(e) => setQ(e.target.value)} />
+      <SearchField placeholder="Album oder Künstler suchen" value={q} onChange={setQ} />
       {allowClear && (
         <button className="btn ghost block" onClick={() => onPick(null)}>Platz leeren</button>
       )}

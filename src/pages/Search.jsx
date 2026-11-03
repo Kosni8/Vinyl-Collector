@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useData } from '../lib/store.jsx'
 import { searchVinyl, searchBarcode, fromSearchResult } from '../lib/discogs.js'
 import RecordRow from '../components/RecordRow.jsx'
+import SearchField from '../components/SearchField.jsx'
 import { BarcodeIcon } from '../components/Icons.jsx'
 
 // Keeps query and results while switching tabs or opening a detail page.
@@ -87,6 +88,22 @@ export default function Search() {
     return () => clearTimeout(t)
   }, [q, barcode, run, country])
 
+  // Clears query, barcode and results (× button or tapping the Suche tab again).
+  const reset = useCallback(() => {
+    setQ('')
+    setBarcode(null)
+    setResults([])
+    setPages(0)
+    setPage(1)
+    setError(null)
+    lastRun.current = ''
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('search-reset', reset)
+    return () => window.removeEventListener('search-reset', reset)
+  }, [reset])
+
   const onScan = useCallback(
     (code) => {
       setScanning(false)
@@ -113,16 +130,15 @@ export default function Search() {
             run(q, 1, null, country)
           }}
         >
-          <input
-            className="search-input"
-            type="search"
+          <SearchField
             enterKeyHint="search"
             placeholder="Album oder Künstler"
             value={q}
-            onChange={(e) => {
+            onChange={(v) => {
               setBarcode(null)
-              setQ(e.target.value)
+              setQ(v)
             }}
+            onClear={reset}
           />
           <button type="button" className="icon-btn bordered" onClick={() => setScanning(true)} aria-label="Barcode scannen">
             <BarcodeIcon />
