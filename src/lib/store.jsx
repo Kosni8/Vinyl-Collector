@@ -84,9 +84,27 @@ export function DataProvider({ children }) {
     [updateItem],
   )
 
+  // Refreshes every record one after another (Discogs allows 60 requests/min,
+  // each refresh uses two). progress = { done, total } while running.
+  const [progress, setProgress] = useState(null)
+  const refreshAllPrices = useCallback(async () => {
+    if (progress) return
+    const list = items
+    for (let n = 0; n < list.length; n++) {
+      setProgress({ done: n, total: list.length })
+      try {
+        await refreshPrices(list[n])
+      } catch (e) {
+        console.warn(e)
+      }
+      if (n < list.length - 1) await new Promise((r) => setTimeout(r, 2100))
+    }
+    setProgress(null)
+  }, [items, progress, refreshPrices])
+
   const value = useMemo(
-    () => ({ profile, items, loading, error, reload, updateProfile, addItem, updateItem, deleteItem, refreshPrices }),
-    [profile, items, loading, error, reload, updateProfile, addItem, updateItem, deleteItem, refreshPrices],
+    () => ({ profile, items, loading, error, reload, updateProfile, addItem, updateItem, deleteItem, refreshPrices, refreshAllPrices, progress }),
+    [profile, items, loading, error, reload, updateProfile, addItem, updateItem, deleteItem, refreshPrices, refreshAllPrices, progress],
   )
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

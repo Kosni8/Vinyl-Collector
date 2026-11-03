@@ -235,3 +235,6 @@ textarea.text-input { resize: vertical; }
 
 .filter-btn { flex-shrink: 0; padding: 11px 14px; font-weight: 600; }
 .chip.on { background: var(--ink); color: var(--bg); }
+.page-header { position: relative; }
+.header-action { position: absolute; right: 0; top: 2px; width: auto; min-width: 44px; padding: 0 10px; font-weight: 700; }
+.header-action:disabled { opacity: 1; }

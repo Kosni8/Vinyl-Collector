@@ -47,23 +47,8 @@ function ImageButton({ className, onFile, children, label }) {
 }
 
 function Settings({ open, onClose, onEdit }) {
-  const { profile, items, refreshPrices } = useData()
-  const [progress, setProgress] = useState(null)
+  const { profile, items, refreshAllPrices, progress } = useData()
   const total = items.reduce((s, i) => s + (Number(i.value_eur) || 0), 0)
-
-  const refreshAll = async () => {
-    for (let n = 0; n < items.length; n++) {
-      setProgress(`${n + 1} / ${items.length}`)
-      try {
-        await refreshPrices(items[n])
-      } catch (e) {
-        console.warn(e)
-      }
-      // Discogs allows 60 requests/minute; each refresh uses two.
-      await new Promise((r) => setTimeout(r, 2100))
-    }
-    setProgress('Fertig')
-  }
 
   return (
     <Sheet open={open} onClose={onClose} title="Einstellungen">
@@ -73,8 +58,8 @@ function Settings({ open, onClose, onEdit }) {
       </div>
       <button className="btn ghost block" onClick={() => onEdit('name')}>Name ändern ({profile.name})</button>
       <button className="btn ghost block" onClick={() => onEdit('handle')}>Untertitel ändern ({profile.handle})</button>
-      <button className="btn ghost block" disabled={!!progress && progress !== 'Fertig'} onClick={refreshAll}>
-        {progress ? `Preise aktualisieren: ${progress}` : 'Alle Preise aktualisieren'}
+      <button className="btn ghost block" disabled={!!progress} onClick={refreshAllPrices}>
+        {progress ? `Preise aktualisieren: ${progress.done + 1} / ${progress.total}` : 'Alle Preise aktualisieren'}
       </button>
       <button className="btn danger block" onClick={() => supabase.auth.signOut()}>Abmelden</button>
     </Sheet>

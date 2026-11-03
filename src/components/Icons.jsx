@@ -38,3 +38,6 @@ export const CameraIcon = (p) => (
 export const FilterIcon = (p) => (
   <svg {...base} {...p}><path d="M4 6h16M7 12h10M10 18h4" /></svg>
 )
+export const RefreshIcon = (p) => (
+  <svg {...base} {...p}><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8" /><path d="M21 3v5h-5" /></svg>
+)

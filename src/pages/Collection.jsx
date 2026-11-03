@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useData } from '../lib/store.jsx'
 import RecordRow from '../components/RecordRow.jsx'
-import { SortIcon, FilterIcon } from '../components/Icons.jsx'
+import { SortIcon, FilterIcon, RefreshIcon } from '../components/Icons.jsx'
 import Sheet from '../components/Sheet.jsx'
 import { VinylDot } from '../components/VinylDot.jsx'
 import { money, VINYL_PATTERNS, patternName } from '../lib/format.js'
@@ -24,7 +24,7 @@ const memory = { q: '', sort: 'added', asc: false, colors: [], patterns: [], sig
 const toggle = (list, v) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
 
 export default function Collection() {
-  const { items, loading } = useData()
+  const { items, loading, refreshAllPrices, progress } = useData()
   const [q, setQ] = useState(memory.q)
   const [sort, setSort] = useState(memory.sort)
   const [asc, setAsc] = useState(memory.asc)
@@ -64,6 +64,14 @@ export default function Collection() {
   return (
     <div className="page">
       <header className="page-header">
+        <button
+          className="icon-btn bordered header-action"
+          onClick={() => confirm(`Preise aller ${items.length} Platten aktualisieren? Das dauert etwa ${Math.ceil((items.length * 2.3) / 60)} Min.`) && refreshAllPrices()}
+          disabled={!!progress || !items.length}
+          aria-label="Alle Preise aktualisieren"
+        >
+          {progress ? <small>{progress.done + 1}/{progress.total}</small> : <RefreshIcon width={20} height={20} />}
+        </button>
         <h1>Sammlung</h1>
         <p className="muted">
           {items.length} Platten · Wert {money(total)}
