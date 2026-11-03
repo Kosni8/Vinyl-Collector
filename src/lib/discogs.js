@@ -74,6 +74,7 @@ export function fromSearchResult(r) {
     label: r.label?.[0],
     cover_url: r.cover_image,
     thumb_url: r.thumb,
+    barcodes: (r.barcode ?? []).map((b) => b.replace(/\D/g, '')),
   }
 }
 

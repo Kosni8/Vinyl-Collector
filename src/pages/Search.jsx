@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useData } from '../lib/store.jsx'
 import { searchVinyl, searchBarcode, fromSearchResult } from '../lib/discogs.js'
 import RecordRow from '../components/RecordRow.jsx'
@@ -29,6 +30,7 @@ const REGIONS = [
 
 export default function Search() {
   const { items } = useData()
+  const navigate = useNavigate()
   const [q, setQ] = useState(memory.q)
   const [barcode, setBarcode] = useState(memory.barcode)
   const [results, setResults] = useState(memory.results)
@@ -58,6 +60,13 @@ export default function Search() {
     try {
       const data = code ? await searchBarcode(code) : await searchVinyl(query.trim(), p, region)
       const rows = data.results.map(fromSearchResult)
+      if (code) {
+        // Exactly one pressing with this barcode: go straight to its page.
+        const digits = String(code).replace(/\D/g, '')
+        const exact = rows.filter((r) => r.barcodes.includes(digits))
+        const match = exact.length === 1 ? exact[0] : rows.length === 1 ? rows[0] : null
+        if (match) navigate(`/release/${match.discogs_release_id}`)
+      }
       setResults((prev) => (p > 1 ? [...prev, ...rows] : rows))
       setPage(p)
       setPages(data.pagination?.pages ?? 1)
@@ -66,7 +75,7 @@ export default function Search() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [navigate])
 
   // live search while typing (debounced)
   useEffect(() => {
