@@ -168,7 +168,7 @@ export default function Home() {
             >
               {it && (
                 <span className="spine-text">
-                  {it.title} – {it.artist}
+                  <Marquee vertical speed={22} text={`${it.title} – ${it.artist}`} />
                 </span>
               )}
             </button>
