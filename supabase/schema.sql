@@ -1,0 +1,99 @@
+-- Vinyl Collector: database schema
+-- Run this once in the Supabase dashboard: SQL Editor -> New query -> paste -> Run.
+-- Safe to re-run: every statement checks whether the object already exists.
+
+-- ---------------------------------------------------------------------------
+-- Profile (exactly one row, shared by everyone who logs in)
+-- ---------------------------------------------------------------------------
+create table if not exists public.profile (
+  id            int primary key default 1 check (id = 1),
+  name          text not null default 'Unsere Sammlung',
+  handle        text not null default '@vinyl',
+  avatar_url    text,
+  banner_url    text,
+  fav_artist    text,
+  fav_song      text,
+  fav_album_id  uuid,
+  -- ordered list of collection_items.id shown as spines on the home shelf
+  shelf         uuid[] not null default '{}',
+  updated_at    timestamptz not null default now()
+);
+
+insert into public.profile (id) values (1) on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Collection
+-- ---------------------------------------------------------------------------
+create table if not exists public.collection_items (
+  id                   uuid primary key default gen_random_uuid(),
+  discogs_release_id   bigint not null,
+  discogs_instance_id  bigint,              -- id of the copy in the Discogs account collection
+  title                text not null,
+  artist               text not null,
+  year                 int,
+  format               text,
+  country              text,
+  label                text,
+  cover_url            text,
+  thumb_url            text,
+  images               jsonb not null default '[]',
+  -- user-entered details
+  vinyl_color          text not null default '#1a1a1a',   -- hex colour
+  vinyl_color_name     text not null default 'Schwarz',
+  vinyl_pattern        text not null default 'solid',     -- solid | marbled | splatter | picture | split
+  photo_url            text,
+  comment              text,
+  signed               boolean not null default false,
+  -- derived
+  spine_color          text,               -- dominant cover colour, used on the home shelf
+  value_eur            numeric(10,2),      -- Discogs price suggestion (VG+)
+  lowest_price_eur     numeric(10,2),
+  num_for_sale         int,
+  prices_updated_at    timestamptz,
+  added_at             timestamptz not null default now()
+);
+
+create index if not exists collection_items_added_at_idx on public.collection_items (added_at desc);
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'profile_fav_album_fk') then
+    alter table public.profile add constraint profile_fav_album_fk
+      foreign key (fav_album_id) references public.collection_items (id) on delete set null;
+  end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Row Level Security: only logged-in users can read or write anything.
+-- (There is one shared login, so no per-user separation is needed.)
+-- ---------------------------------------------------------------------------
+alter table public.profile enable row level security;
+alter table public.collection_items enable row level security;
+
+drop policy if exists "profile_rw" on public.profile;
+create policy "profile_rw" on public.profile
+  for all to authenticated using (true) with check (true);
+
+drop policy if exists "items_rw" on public.collection_items;
+create policy "items_rw" on public.collection_items
+  for all to authenticated using (true) with check (true);
+
+-- ---------------------------------------------------------------------------
+-- Storage bucket for own photos (record photos, avatar, banner).
+-- Public read so <img> tags work; only logged-in users can upload/delete.
+-- ---------------------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('photos', 'photos', true)
+on conflict (id) do nothing;
+
+drop policy if exists "photos_insert" on storage.objects;
+create policy "photos_insert" on storage.objects
+  for insert to authenticated with check (bucket_id = 'photos');
+
+drop policy if exists "photos_update" on storage.objects;
+create policy "photos_update" on storage.objects
+  for update to authenticated using (bucket_id = 'photos');
+
+drop policy if exists "photos_delete" on storage.objects;
+create policy "photos_delete" on storage.objects
+  for delete to authenticated using (bucket_id = 'photos');
