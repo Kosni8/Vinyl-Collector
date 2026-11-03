@@ -6,6 +6,7 @@ import { textOn, tint } from '../lib/color.js'
 import { money } from '../lib/format.js'
 import Sheet from '../components/Sheet.jsx'
 import ItemPicker from '../components/ItemPicker.jsx'
+import Marquee from '../components/Marquee.jsx'
 import { GearIcon, PersonIcon, DiscIcon, NoteIcon } from '../components/Icons.jsx'
 
 function TextSheet({ edit, onClose, onSave }) {
@@ -151,15 +152,15 @@ export default function Home() {
       <section className="favorites">
         <button onClick={() => openEdit('artist')}>
           <PersonIcon className="fav-icon" />
-          <span>{profile.fav_artist || 'Künstler:in'}</span>
+          <Marquee text={profile.fav_artist || 'Künstler:in'} />
         </button>
         <button onClick={() => setPicker('fav')}>
           <DiscIcon className="fav-icon" />
-          <span>{fav?.title || 'Album'}</span>
+          <Marquee text={fav?.title || 'Album'} />
         </button>
         <button onClick={() => openEdit('song')}>
           <NoteIcon className="fav-icon" />
-          <span>{profile.fav_song || 'Song'}</span>
+          <Marquee text={profile.fav_song || 'Song'} />
         </button>
       </section>
 

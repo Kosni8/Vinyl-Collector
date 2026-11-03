@@ -29,9 +29,12 @@ export const VINYL_COLORS = [
 
 export const VINYL_PATTERNS = [
   { id: 'solid', name: 'Einfarbig' },
+  { id: 'translucent', name: 'Translucent' },
   { id: 'marbled', name: 'Marmoriert' },
   { id: 'splatter', name: 'Splatter' },
   { id: 'split', name: 'Split' },
+  { id: 'filled', name: 'Filled' },
+  { id: 'liquid', name: 'Liquid Filled' },
   { id: 'picture', name: 'Picture Disc' },
 ]
 

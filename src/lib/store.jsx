@@ -6,7 +6,8 @@ const DataContext = createContext(null)
 export const SHELF_SLOTS = 14
 
 const PRICE_FIELDS = (p) => ({
-  value_eur: p.value_currency && p.value_currency !== 'EUR' ? null : p.value,
+  // keep the last known value if Discogs returns none this time
+  ...(p.value != null && (!p.value_currency || p.value_currency === 'EUR') ? { value_eur: p.value } : {}),
   lowest_price_eur: p.lowest_price,
   num_for_sale: p.num_for_sale,
   prices_updated_at: new Date().toISOString(),
@@ -77,7 +78,8 @@ export function DataProvider({ children }) {
   const refreshPrices = useCallback(
     async (item) => {
       const p = await getPrices(item.discogs_release_id)
-      return updateItem(item.id, PRICE_FIELDS(p))
+      const updated = await updateItem(item.id, PRICE_FIELDS(p))
+      return { item: updated, prices: p }
     },
     [updateItem],
   )

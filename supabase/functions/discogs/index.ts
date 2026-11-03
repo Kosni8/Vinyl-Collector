@@ -95,16 +95,28 @@ function searchParams(p: Record<string, unknown>) {
   })
   if (p.q) params.set('q', String(p.q))
   if (p.barcode) params.set('barcode', String(p.barcode).replace(/\D/g, ''))
+  // optional Discogs search filters
+  for (const key of ['country', 'year', 'artist', 'release_title', 'label', 'sort', 'sort_order']) {
+    if (p[key]) params.set(key, String(p[key]))
+  }
   return params
 }
 
 async function prices(releaseId: number) {
+  let valueError: string | null = null
   const [stats, suggestions] = await Promise.all([
     discogs(`/marketplace/stats/${releaseId}?curr_abbr=${CURRENCY}`).catch(() => null),
     // Needs seller settings (currency) filled out in the Discogs account.
-    discogs(`/marketplace/price_suggestions/${releaseId}`).catch(() => null),
+    discogs(`/marketplace/price_suggestions/${releaseId}`).catch((e) => {
+      valueError = (e as Error).message
+      return null
+    }),
   ])
   const suggestion = suggestions?.[VALUE_CONDITION]
+  if (suggestions && !suggestion) valueError = 'Discogs hat für diese Pressung keine Preisempfehlung.'
+  if (suggestion && suggestion.currency !== CURRENCY) {
+    valueError = `Deine Discogs-Verkäuferwährung ist ${suggestion.currency}, bitte auf ${CURRENCY} stellen.`
+  }
   return {
     num_for_sale: stats?.num_for_sale ?? null,
     lowest_price: stats?.lowest_price?.value ?? null,
@@ -113,6 +125,7 @@ async function prices(releaseId: number) {
     value: suggestion?.value ?? null,
     value_currency: suggestion?.currency ?? null,
     value_condition: VALUE_CONDITION,
+    value_error: valueError,
   }
 }
 

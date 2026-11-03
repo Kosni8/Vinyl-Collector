@@ -24,7 +24,7 @@ async function call(action, params = {}, { raw = false } = {}) {
   return raw ? res : res.json()
 }
 
-export const searchVinyl = (q, page = 1) => call('search', { q, page })
+export const searchVinyl = (q, page = 1, country = '') => call('search', { q, page, country })
 export const searchBarcode = (barcode) => call('search', { barcode })
 export const getRelease = (id) => call('release', { id })
 export const getPrices = (id) => call('prices', { id })

@@ -35,6 +35,7 @@ export default function RecordDetails({ images, record, prices, pricesLoading, c
             <strong>{pricesLoading && prices?.lowest_price == null ? '…' : money(prices?.lowest_price)}</strong>
           </div>
         </div>
+        {prices?.value == null && prices?.value_error && <p className="error small">Wert: {prices.value_error}</p>}
         {prices?.updated_at && <p className="muted small">Preise vom {dateDe(prices.updated_at)}</p>}
         {children}
         <a className="link-btn discogs-link" href={`https://www.discogs.com/release/${record.discogs_release_id}`} target="_blank" rel="noreferrer">

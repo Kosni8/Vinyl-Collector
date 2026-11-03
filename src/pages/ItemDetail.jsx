@@ -19,6 +19,16 @@ export default function ItemDetail() {
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [pricesLoading, setPricesLoading] = useState(false)
+  const [valueError, setValueError] = useState(null)
+
+  const loadPrices = (it) => {
+    setPricesLoading(true)
+    setValueError(null)
+    return refreshPrices(it)
+      .then((r) => setValueError(r.prices.value_error))
+      .catch((e) => setValueError(e.message))
+      .finally(() => setPricesLoading(false))
+  }
   const refreshed = useRef(false)
 
   // Refresh market data when it is older than 12 hours.
@@ -26,11 +36,9 @@ export default function ItemDetail() {
     if (!item || refreshed.current) return
     refreshed.current = true
     if (item.prices_updated_at && Date.now() - new Date(item.prices_updated_at) < STALE_MS) return
-    setPricesLoading(true)
-    refreshPrices(item)
-      .catch((e) => console.warn(e))
-      .finally(() => setPricesLoading(false))
-  }, [item, refreshPrices])
+    loadPrices(item)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item])
 
   if (!item) return <div className="page"><p className="muted center">{loading ? 'Lädt …' : 'Platte nicht gefunden.'}</p></div>
 
@@ -80,6 +88,7 @@ export default function ItemDetail() {
         num_for_sale: item.num_for_sale,
         lowest_price: item.lowest_price_eur,
         updated_at: item.prices_updated_at,
+        value_error: valueError,
       }}
     >
       <section className="my-copy">
@@ -92,6 +101,9 @@ export default function ItemDetail() {
         <button className="btn primary block" onClick={() => setEditing(true)}>Bearbeiten</button>
         <button className="btn ghost block" disabled={isFav} onClick={() => updateProfile({ fav_album_id: item.id })}>
           {isFav ? '★ Lieblingsalbum' : '☆ Als Lieblingsalbum setzen'}
+        </button>
+        <button className="btn ghost block" disabled={pricesLoading} onClick={() => loadPrices(item)}>
+          {pricesLoading ? 'Preise werden geladen …' : 'Preise aktualisieren'}
         </button>
         <button className="btn danger block" disabled={busy} onClick={remove}>Aus Sammlung löschen</button>
       </div>

@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useData } from '../lib/store.jsx'
 import RecordRow from '../components/RecordRow.jsx'
-import { SortIcon } from '../components/Icons.jsx'
-import { money } from '../lib/format.js'
+import { SortIcon, FilterIcon } from '../components/Icons.jsx'
+import Sheet from '../components/Sheet.jsx'
+import { VinylDot } from '../components/VinylDot.jsx'
+import { money, VINYL_PATTERNS, patternName } from '../lib/format.js'
 
 const SORTS = {
   added: { label: 'Hinzugefügt', fn: (a, b) => new Date(a.added_at) - new Date(b.added_at), defaultAsc: false },
@@ -17,23 +19,45 @@ const SORTS = {
 }
 
 // Remember the view between tab switches.
-const memory = { q: '', sort: 'added', asc: false }
+const memory = { q: '', sort: 'added', asc: false, colors: [], patterns: [], signed: false }
+
+const toggle = (list, v) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
 
 export default function Collection() {
   const { items, loading } = useData()
   const [q, setQ] = useState(memory.q)
   const [sort, setSort] = useState(memory.sort)
   const [asc, setAsc] = useState(memory.asc)
-  Object.assign(memory, { q, sort, asc })
+  const [colors, setColors] = useState(memory.colors)
+  const [patterns, setPatterns] = useState(memory.patterns)
+  const [signed, setSigned] = useState(memory.signed)
+  const [filterOpen, setFilterOpen] = useState(false)
+  Object.assign(memory, { q, sort, asc, colors, patterns, signed })
+  const activeFilters = colors.length + patterns.length + (signed ? 1 : 0)
+
+  // Only offer colours and patterns that exist in the collection.
+  const colorOptions = useMemo(() => {
+    const m = new Map()
+    items.forEach((i) => m.has(i.vinyl_color_name) || m.set(i.vinyl_color_name, i.vinyl_color))
+    return [...m].sort((a, b) => a[0].localeCompare(b[0], 'de'))
+  }, [items])
+  const patternOptions = useMemo(
+    () => VINYL_PATTERNS.filter((p) => items.some((i) => i.vinyl_pattern === p.id)),
+    [items],
+  )
 
   const list = useMemo(() => {
     const s = q.trim().toLowerCase()
     const filtered = items.filter(
-      (i) => !s || i.title.toLowerCase().includes(s) || i.artist.toLowerCase().includes(s),
+      (i) =>
+        (!s || i.title.toLowerCase().includes(s) || i.artist.toLowerCase().includes(s)) &&
+        (!colors.length || colors.includes(i.vinyl_color_name)) &&
+        (!patterns.length || patterns.includes(i.vinyl_pattern)) &&
+        (!signed || i.signed),
     )
     const fn = SORTS[sort].fn
     return filtered.sort((a, b) => (asc ? fn(a, b) : fn(b, a)))
-  }, [items, q, sort, asc])
+  }, [items, q, sort, asc, colors, patterns, signed])
 
   const total = items.reduce((sum, i) => sum + (Number(i.value_eur) || 0), 0)
 
@@ -48,6 +72,9 @@ export default function Collection() {
       <div className="toolbar sticky">
         <input className="search-input" type="search" placeholder="Album oder Künstler suchen" value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="row">
+          <button className={'chip filter-btn' + (activeFilters ? ' on' : '')} onClick={() => setFilterOpen(true)}>
+            <FilterIcon width={16} height={16} /> Filter{activeFilters ? ` (${activeFilters})` : ''}
+          </button>
           <select
             className="select"
             value={sort}
@@ -67,12 +94,52 @@ export default function Collection() {
       </div>
       {loading && <p className="muted center">Lädt …</p>}
       {!loading && !items.length && <p className="muted center">Noch keine Platten. Über „Suche“ kannst du die erste hinzufügen.</p>}
+      {activeFilters > 0 && list.length > 0 && (
+        <p className="muted small">{list.length} von {items.length} Platten</p>
+      )}
       {!loading && items.length > 0 && !list.length && <p className="muted center">Nichts gefunden.</p>}
       <div className="record-list">
         {list.map((it) => (
           <RecordRow key={it.id} to={`/sammlung/${it.id}`} item={it} />
         ))}
       </div>
+      <Sheet open={filterOpen} onClose={() => setFilterOpen(false)} title="Filter">
+        <label className="field-label">Farbe</label>
+        <div className="chips">
+          {colorOptions.map(([name, hex]) => (
+            <button key={name} className={'chip' + (colors.includes(name) ? ' on' : '')} onClick={() => setColors(toggle(colors, name))}>
+              <VinylDot color={hex} size={16} /> {name}
+            </button>
+          ))}
+        </div>
+        <label className="field-label">Muster</label>
+        <div className="chips">
+          {patternOptions.map((p) => (
+            <button key={p.id} className={'chip' + (patterns.includes(p.id) ? ' on' : '')} onClick={() => setPatterns(toggle(patterns, p.id))}>
+              {patternName(p.id)}
+            </button>
+          ))}
+        </div>
+        <label className="check">
+          <input type="checkbox" checked={signed} onChange={(e) => setSigned(e.target.checked)} />
+          Nur signierte
+        </label>
+        <button className="btn primary block" onClick={() => setFilterOpen(false)}>
+          {list.length} Platten anzeigen
+        </button>
+        {activeFilters > 0 && (
+          <button
+            className="btn ghost block"
+            onClick={() => {
+              setColors([])
+              setPatterns([])
+              setSigned(false)
+            }}
+          >
+            Filter zurücksetzen
+          </button>
+        )}
+      </Sheet>
     </div>
   )
 }

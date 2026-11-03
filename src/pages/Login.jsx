@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase, SUPABASE_URL } from '../lib/supabase.js'
+import { supabase } from '../lib/supabase.js'
 import { DiscIcon } from '../components/Icons.jsx'
 
 function loginError(error) {
@@ -38,7 +38,6 @@ export default function Login() {
         <input className="text-input" type="email" autoComplete="username" placeholder="E-Mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <input className="text-input" type="password" autoComplete="current-password" placeholder="Passwort" value={password} onChange={(e) => setPassword(e.target.value)} required />
         {error && <p className="error">{error}</p>}
-        <p className="muted small">Server: {SUPABASE_URL}</p>
         <button className="btn primary block" disabled={busy}>{busy ? 'Anmelden …' : 'Anmelden'}</button>
       </form>
     </div>

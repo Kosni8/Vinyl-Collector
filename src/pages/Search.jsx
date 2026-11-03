@@ -8,7 +8,24 @@ import { BarcodeIcon } from '../components/Icons.jsx'
 // The barcode library is large, so it is only loaded when the scanner opens.
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner.jsx'))
 
-const memory = { q: '', barcode: null, results: [], page: 1, pages: 0 }
+const memory = { q: '', barcode: null, results: [], page: 1, pages: 0, country: '' }
+
+// Values as Discogs writes them in the "country" field of a release.
+const REGIONS = [
+  ['', 'Alle Länder'],
+  ['Europe', 'Europa'],
+  ['UK & Europe', 'UK & Europa'],
+  ['Germany', 'Deutschland'],
+  ['UK', 'UK'],
+  ['US', 'USA'],
+  ['USA & Europe', 'USA & Europa'],
+  ['Canada', 'Kanada'],
+  ['Japan', 'Japan'],
+  ['Australia', 'Australien'],
+  ['France', 'Frankreich'],
+  ['Netherlands', 'Niederlande'],
+  ['Italy', 'Italien'],
+]
 
 export default function Search() {
   const { items } = useData()
@@ -20,8 +37,9 @@ export default function Search() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [scanning, setScanning] = useState(false)
+  const [country, setCountry] = useState(memory.country)
   const lastRun = useRef(memory.q)
-  Object.assign(memory, { q, barcode, results, page, pages })
+  Object.assign(memory, { q, barcode, results, page, pages, country })
 
   const owned = useMemo(() => {
     const m = new Map()
@@ -29,7 +47,7 @@ export default function Search() {
     return m
   }, [items])
 
-  const run = useCallback(async (query, p = 1, code = null) => {
+  const run = useCallback(async (query, p = 1, code = null, region = '') => {
     if (!code && !query.trim()) {
       setResults([])
       setPages(0)
@@ -38,7 +56,7 @@ export default function Search() {
     setLoading(true)
     setError(null)
     try {
-      const data = code ? await searchBarcode(code) : await searchVinyl(query.trim(), p)
+      const data = code ? await searchBarcode(code) : await searchVinyl(query.trim(), p, region)
       const rows = data.results.map(fromSearchResult)
       setResults((prev) => (p > 1 ? [...prev, ...rows] : rows))
       setPage(p)
@@ -55,10 +73,10 @@ export default function Search() {
     if (barcode || q === lastRun.current) return
     const t = setTimeout(() => {
       lastRun.current = q
-      run(q)
+      run(q, 1, null, country)
     }, 500)
     return () => clearTimeout(t)
-  }, [q, barcode, run])
+  }, [q, barcode, run, country])
 
   const onScan = useCallback(
     (code) => {
@@ -83,7 +101,7 @@ export default function Search() {
             e.preventDefault()
             document.activeElement?.blur()
             lastRun.current = q
-            run(q)
+            run(q, 1, null, country)
           }}
         >
           <input
@@ -101,6 +119,21 @@ export default function Search() {
             <BarcodeIcon />
           </button>
         </form>
+        {!barcode && (
+          <select
+            className="select"
+            value={country}
+            onChange={(e) => {
+              setCountry(e.target.value)
+              lastRun.current = q
+              run(q, 1, null, e.target.value)
+            }}
+          >
+            {REGIONS.map(([v, label]) => (
+              <option key={v} value={v}>{label}</option>
+            ))}
+          </select>
+        )}
         {barcode && (
           <p className="muted small">
             Barcode {barcode} ·{' '}
@@ -120,7 +153,7 @@ export default function Search() {
       </div>
       {loading && <p className="muted center">Sucht …</p>}
       {!loading && !barcode && page < pages && (
-        <button className="btn ghost block" onClick={() => run(q, page + 1)}>Mehr laden</button>
+        <button className="btn ghost block" onClick={() => run(q, page + 1, null, country)}>Mehr laden</button>
       )}
       {scanning && (
         <Suspense fallback={null}>

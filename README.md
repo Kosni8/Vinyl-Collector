@@ -53,6 +53,15 @@ Hinweis: Kostenlose Supabase-Projekte pausieren nach 7 Tagen ohne Nutzung. Dann 
 3. Auf `main` pushen (oder unter **Actions → Deploy to GitHub Pages → Run workflow**).
    Die App läuft danach unter `https://<github-name>.github.io/Vinyl-Collector/`.
 
+### Server-Funktion automatisch aktualisieren (empfohlen)
+
+Damit Änderungen an `supabase/functions/` automatisch in Supabase landen:
+
+1. Auf <https://supabase.com/dashboard/account/tokens> einen **Access Token** erzeugen.
+2. Im Repo unter **Settings → Secrets and variables → Actions → Secrets** ein Repository-Secret
+   `SUPABASE_ACCESS_TOKEN` mit diesem Token anlegen.
+3. Unter **Actions → Deploy Supabase Edge Functions → Run workflow** einmal starten.
+
 ### 4. Aufs iPhone
 
 Die Seite in **Safari** öffnen → Teilen-Symbol → **„Zum Home-Bildschirm“**. Danach einmal in der App anmelden.
