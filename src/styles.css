@@ -333,8 +333,12 @@ textarea.text-input { resize: vertical; }
 .price-table td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
 .price-table tr.on td { background: #f4e6c8; }
 .settings-gap { margin-top: 22px !important; }
-/* signed: small round mark next to the title in the collection list */
-.record-title-row { display: flex; align-items: flex-start; gap: 6px; }
-.record-title-row .record-title { flex: 1; min-width: 0; }
-.signed-dot { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; background: #f4e6c8; color: var(--ink); display: grid; place-items: center; }
+/* copies: price in the bottom right corner, signed dot in the top right corner,
+   so the title and the other lines can use the full width */
+.record-row.copy { position: relative; }
+.record-row.copy .record-value { position: absolute; right: 12px; bottom: 10px; }
+.record-row.copy .record-info > :last-child { padding-right: 84px; }
+.record-row.signed .record-title { padding-right: 30px; }
+.record-row .signed-dot { position: absolute; top: 8px; right: 8px; }
+.signed-dot { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: #f4e6c8; color: var(--ink); display: grid; place-items: center; }
 .signed-dot svg { display: block; }

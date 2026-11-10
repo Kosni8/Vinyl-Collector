@@ -7,15 +7,13 @@ import { money, formatShort } from '../lib/format.js'
 export default function RecordRow({ to, item, owned, wanted }) {
   const isCopy = !!item.id // a copy in the collection (not a search result)
   return (
-    <Link to={to} className="record-row">
+    <Link to={to} className={'record-row' + (isCopy ? ' copy' : '') + (isCopy && item.signed ? ' signed' : '')}>
       <span className="record-cover-wrap">
         <img className="record-cover" src={item.thumb_url || item.cover_url || ''} alt="" loading="lazy" />
       </span>
       <div className="record-info">
-        <div className="record-title-row">
-          <div className="record-title">{item.title}</div>
-          {isCopy && item.signed && <span className="signed-dot" title="Signiert" aria-label="Signiert"><PenIcon width={12} height={12} /></span>}
-        </div>
+        <div className="record-title">{item.title}</div>
+        {isCopy && item.signed && <span className="signed-dot" title="Signiert" aria-label="Signiert"><PenIcon width={17} height={17} strokeWidth={1.8} /></span>}
         <div className="record-artist">{item.artist}</div>
         <div className="record-meta">
           {[item.year || null, item.country].filter(Boolean).join(' · ')}

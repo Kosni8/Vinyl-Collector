@@ -124,6 +124,7 @@ export const COLOR_GROUPS = [
   { id: 'blue', name: 'Blau', hex: '#2e6fd8' },
   { id: 'green', name: 'Grün', hex: '#2e8b57' },
   { id: 'yellow', name: 'Gelb', hex: '#f1c40f' },
+  { id: 'brown', name: 'Braun', hex: '#7b4a2d' },
   { id: 'black', name: 'Schwarz', hex: '#1a1a1a' },
   { id: 'white', name: 'Weiß', hex: '#f4f1ea' },
   { id: 'clear', name: 'Durchsichtig', hex: '#d9e4e8', pattern: 'translucent' },
@@ -144,6 +145,8 @@ export function colorGroupOf(hex = '#000000') {
   else if (max === g) h = (b - r) / (max - min) + 2
   else h = (r - g) / (max - min) + 4
   h = (h * 60 + 360) % 360
+  // brown = dark or dull orange
+  if (h >= 10 && h < 50 && (l < 0.45 || (sat < 0.5 && l < 0.7))) return 'brown'
   if (h >= 290 || h < 15) return l > 0.68 || (h >= 290 && h < 340) ? 'pink' : 'red'
   if (h < 68) return 'yellow' // incl. orange and gold
   if (h < 170) return 'green'
