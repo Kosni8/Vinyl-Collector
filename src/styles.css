@@ -341,4 +341,4 @@ textarea.text-input { resize: vertical; }
 .record-row.signed .record-title { padding-right: 30px; }
 .record-row .signed-dot { position: absolute; top: 8px; right: 8px; }
 .signed-dot { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: #f4e6c8; color: var(--ink); display: grid; place-items: center; }
-.signed-dot svg { display: block; }
+.signed-dot { font-size: 15px; line-height: 1; }
