@@ -67,6 +67,7 @@ alter table public.collection_items add column if not exists discs      jsonb;  
 alter table public.collection_items add column if not exists shape      text;   -- null = round | heart | star | …
 alter table public.collection_items add column if not exists condition  text;   -- M | NM | VG+ | VG | G+ | G | F | P
 alter table public.collection_items add column if not exists value_condition text; -- condition value_eur was taken for (condition, or VG+ as fallback)
+alter table public.collection_items add column if not exists signed_items text[]; -- what is signed: Art-Card | Vinyl Sized | Poster | Cover
 
 do $$
 begin

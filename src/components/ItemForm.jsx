@@ -15,6 +15,8 @@ import {
 import { VinylDot } from './VinylDot.jsx'
 import { CameraIcon } from './Icons.jsx'
 
+const SIGNED_ITEMS = ['Art-Card', 'Vinyl Sized', 'Poster', 'Cover']
+
 /** Colours (up to three), name and pattern of one record. */
 function DiscEditor({ disc, onChange, cover }) {
   // Which colour slot the palette below fills: 0 = base colour, 1/2 = extra colours.
@@ -109,6 +111,7 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
   const [condition, setCondition] = useState(initial.condition ?? null)
   const [comment, setComment] = useState(initial.comment ?? '')
   const [signed, setSigned] = useState(initial.signed ?? false)
+  const [signedItems, setSignedItems] = useState(initial.signed_items ?? [])
   const [photo, setPhoto] = useState(null)
   const [preview, setPreview] = useState(initial.photo_url ?? null)
   const [removePhoto, setRemovePhoto] = useState(false)
@@ -140,6 +143,8 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
           condition,
           comment: comment.trim() || null,
           signed,
+          // only sent when used, so saving keeps working before the column exists
+          ...(signed || initial.signed_items?.length ? { signed_items: signed && signedItems.length ? signedItems : null } : {}),
           photoFile: photo,
           removePhoto,
         })
@@ -268,6 +273,23 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
         <input type="checkbox" checked={signed} onChange={(e) => setSigned(e.target.checked)} />
         Signierte Ausgabe
       </label>
+      {signed && (
+        <>
+          <label className="field-label">Was ist signiert?</label>
+          <div className="chips">
+            {SIGNED_ITEMS.map((t) => (
+              <button
+                type="button"
+                key={t}
+                className={'chip' + (signedItems.includes(t) ? ' on' : '')}
+                onClick={() => setSignedItems((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <button className="btn primary block" disabled={busy}>
         {busy ? 'Speichern …' : submitLabel}

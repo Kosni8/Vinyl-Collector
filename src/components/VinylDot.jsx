@@ -271,7 +271,7 @@ export function VinylColorLabel({ item, showSigned = true }) {
         ))}
       </span>
       <span className="vinyl-label-text">{allSame ? name(discs[0]) : discs.map(name).join(' + ')}</span>
-      {showSigned && item.signed && <span className="badge">✍︎ Signiert</span>}
+      {showSigned && item.signed && <span className="badge">✍︎ Signiert{item.signed_items?.length ? ': ' + item.signed_items.join(', ') : ''}</span>}
     </span>
   )
 }
