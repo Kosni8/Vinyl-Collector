@@ -8,6 +8,7 @@ import Sheet from '../components/Sheet.jsx'
 import ItemPicker from '../components/ItemPicker.jsx'
 import Marquee from '../components/Marquee.jsx'
 import ImageCropper from '../components/ImageCropper.jsx'
+import SpineColorSheet from '../components/SpineColorSheet.jsx'
 import { VinylDisc } from '../components/VinylDot.jsx'
 import { GearIcon, PersonIcon, DiscIcon, NoteIcon } from '../components/Icons.jsx'
 
@@ -162,12 +163,13 @@ function Spine({ item, label, onClick }) {
 }
 
 export default function Home() {
-  const { profile, items, updateProfile } = useData()
+  const { profile, items, updateProfile, updateItem } = useData()
   const [edit, setEdit] = useState(null)
   const [picker, setPicker] = useState(null) // 'fav' | slot index
   const [settings, setSettings] = useState(false)
   const [busy, setBusy] = useState(null)
   const [crop, setCrop] = useState(null) // { field, file }
+  const [colorFor, setColorFor] = useState(null) // record whose shelf colour is being chosen
 
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items])
   const fav = profile.fav_album_id ? byId.get(profile.fav_album_id) : null
@@ -219,6 +221,7 @@ export default function Home() {
       await updateProfile({ shelf: next })
     }
     setPicker(null)
+    if (item) setColorFor(item) // second step: choose the colour from the cover
   }
 
   return (
@@ -303,6 +306,19 @@ export default function Home() {
           }}
         />
       )}
+
+      <SpineColorSheet
+        item={colorFor}
+        onClose={() => setColorFor(null)}
+        onSave={async (color) => {
+          try {
+            if (color !== colorFor.spine_color) await updateItem(colorFor.id, { spine_color: color })
+            setColorFor(null)
+          } catch (e) {
+            alert('Speichern fehlgeschlagen: ' + e.message)
+          }
+        }}
+      />
 
       <TextSheet
         key={edit?.field}

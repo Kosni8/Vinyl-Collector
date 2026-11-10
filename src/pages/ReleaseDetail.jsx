@@ -41,7 +41,7 @@ export default function ReleaseDetail() {
       const { photoFile, removePhoto, ...details } = form
       const [photo_url, spine_color, discogsCopy] = await Promise.all([
         photoFile ? uploadPhoto(photoFile, 'records') : null,
-        details.spine_color ?? coverColor(record.cover_url),
+        coverColor(record.cover_url),
         addToDiscogsCollection(record.discogs_release_id).catch((e) => {
           console.warn('Discogs-Sammlung', e)
           return null
@@ -91,7 +91,7 @@ export default function ReleaseDetail() {
         {owned.length ? 'Weiteres Exemplar hinzufügen' : 'Zur Sammlung hinzufügen'}
       </button>
       <Sheet open={adding} onClose={() => !busy && setAdding(false)} title="Zur Sammlung hinzufügen" full>
-        <ItemForm cover={record.thumb_url} coverFull={record.cover_url} submitLabel="Hinzufügen" busy={busy} onSubmit={save} />
+        <ItemForm cover={record.thumb_url} submitLabel="Hinzufügen" busy={busy} onSubmit={save} />
       </Sheet>
     </RecordDetails>
   )
