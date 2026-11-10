@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { VinylColorLabel } from './VinylDot.jsx'
-import { PenIcon } from './Icons.jsx'
 import { money, formatShort } from '../lib/format.js'
 
 /** One record in a list (collection or search results). */
@@ -13,7 +12,7 @@ export default function RecordRow({ to, item, owned, wanted }) {
       </span>
       <div className="record-info">
         <div className="record-title">{item.title}</div>
-        {isCopy && item.signed && <span className="signed-dot" title="Signiert" aria-label="Signiert"><PenIcon width={17} height={17} strokeWidth={1.8} /></span>}
+        {isCopy && item.signed && <span className="signed-dot" title="Signiert" aria-label="Signiert">✍︎</span>}
         <div className="record-artist">{item.artist}</div>
         <div className="record-meta">
           {[item.year || null, item.country].filter(Boolean).join(' · ')}

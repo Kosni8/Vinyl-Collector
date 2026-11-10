@@ -44,16 +44,3 @@ export const RefreshIcon = (p) => (
 export const CloseIcon = (p) => (
   <svg {...base} {...p} strokeWidth={2.6}><path d="M6 6l12 12M18 6 6 18" /></svg>
 )
-/** Hand holding a pen (signed copies). */
-export const PenIcon = (p) => (
-  <svg {...base} {...p}>
-    <path d="M10 14.2l-5.6 5.6-1.4 1.2 1.2-1.4 5.6-5.6" />
-    <path d="M15.8 8.3l3.9-3.9" />
-    <path d="M10.9 10.6c1.4-2.1 3.6-3.1 6-2.6l4.1 2.4" />
-    <path d="M21 15.8l-3.4 2.4c-2 1.1-4.4.9-6.1-.5" />
-    <path d="M10.9 10.6c-.9 0-1.4.6-1.4 1.3s.6 1.3 1.4 1.3h2.2" />
-    <path d="M10.6 13.2c-.9 0-1.4.6-1.4 1.3s.6 1.3 1.4 1.3h2.6" />
-    <path d="M11.2 15.8c-.8 0-1.3.5-1.3 1.1 0 .5.6.9 1.6.8" />
-    <path d="M12.6 10.4l3.2-2.1" />
-  </svg>
-)
