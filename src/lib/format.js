@@ -42,15 +42,14 @@ export const patternName = (id) => VINYL_PATTERNS.find((p) => p.id === id)?.name
 
 export const SIZES = ['12"', '10"', '7"', '4"']
 
+// Fixed shapes; anything else in `shape` is the user's own text ("Eigenes").
 export const SHAPES = [
   { id: 'heart', name: 'Herz' },
   { id: 'star', name: 'Stern' },
-  { id: 'triangle', name: 'Dreieck' },
-  { id: 'hexagon', name: 'Sechseck' },
-  { id: 'square', name: 'Quadrat' },
-  { id: 'other', name: 'Andere' },
 ]
-export const shapeName = (id) => SHAPES.find((s) => s.id === id)?.name ?? ''
+const LEGACY_SHAPES = { triangle: 'Dreieck', hexagon: 'Sechseck', square: 'Quadrat', other: 'Andere' }
+export const isOwnShape = (shape) => !!shape && !SHAPES.some((s) => s.id === shape)
+export const shapeName = (shape) => SHAPES.find((s) => s.id === shape)?.name ?? LEGACY_SHAPES[shape] ?? shape ?? ''
 
 // Goldmine grading as Discogs uses it; `discogs` is the key of the price suggestion.
 export const CONDITIONS = [

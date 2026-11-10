@@ -205,7 +205,11 @@ Deno.serve(async (req) => {
 
       case 'addToWantlist': {
         const user = await username()
-        const data = await discogs(`/users/${encodeURIComponent(user)}/wants/${Number(body.id)}`, { method: 'PUT' })
+        // empty body so a Content-Length header is sent (some proxies refuse a PUT without it)
+        const data = await discogs(`/users/${encodeURIComponent(user)}/wants/${Number(body.id)}`, {
+          method: 'PUT',
+          body: '',
+        })
         return json(data ?? { ok: true })
       }
 

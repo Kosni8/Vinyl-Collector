@@ -4,6 +4,8 @@ import {
   VINYL_PATTERNS,
   SIZES,
   SHAPES,
+  isOwnShape,
+  shapeName,
   CONDITIONS,
   MAX_DISCS,
   MAX_DISC_COLORS,
@@ -102,6 +104,8 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
   })
   const [active, setActive] = useState(0)
   const [shape, setShape] = useState(initial.shape ?? null)
+  const [ownShape, setOwnShape] = useState(isOwnShape(initial.shape))
+  const [ownShapeText, setOwnShapeText] = useState(isOwnShape(initial.shape) ? shapeName(initial.shape) : '')
   const [condition, setCondition] = useState(initial.condition ?? null)
   const [comment, setComment] = useState(initial.comment ?? '')
   const [signed, setSigned] = useState(initial.signed ?? false)
@@ -132,7 +136,7 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
           vinyl_color: used[0].colors[0],
           vinyl_color_name: used[0].name,
           vinyl_pattern: used[0].pattern,
-          shape,
+          shape: ownShape ? ownShapeText.trim() || null : shape,
           condition,
           comment: comment.trim() || null,
           signed,
@@ -178,15 +182,33 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
       )}
       <DiscEditor key={active} disc={discs[active]} onChange={(d) => updateDisc(active, d)} cover={cover} />
 
-      <label className="field-label">Form (optional)</label>
+      <label className="field-label">Form</label>
       <div className="chips">
-        <button type="button" className={'chip' + (!shape ? ' on' : '')} onClick={() => setShape(null)}>Rund</button>
+        <button type="button" className={'chip' + (!shape && !ownShape ? ' on' : '')} onClick={() => { setShape(null); setOwnShape(false) }}>
+          Rund
+        </button>
         {SHAPES.map((sh) => (
-          <button type="button" key={sh.id} className={'chip' + (shape === sh.id ? ' on' : '')} onClick={() => setShape(sh.id)}>
+          <button
+            type="button"
+            key={sh.id}
+            className={'chip' + (!ownShape && shape === sh.id ? ' on' : '')}
+            onClick={() => { setShape(sh.id); setOwnShape(false) }}
+          >
             {sh.name}
           </button>
         ))}
+        <button type="button" className={'chip' + (ownShape ? ' on' : '')} onClick={() => setOwnShape(true)}>
+          Eigenes
+        </button>
       </div>
+      {ownShape && (
+        <input
+          className="text-input own-shape"
+          value={ownShapeText}
+          onChange={(e) => setOwnShapeText(e.target.value)}
+          placeholder="Form, z. B. Totenkopf oder Pizza"
+        />
+      )}
 
       <label className="field-label">Zustand</label>
       <div className="chips">

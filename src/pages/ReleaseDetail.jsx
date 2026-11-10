@@ -86,7 +86,8 @@ export default function ReleaseDetail() {
       if (Object.keys(patch).length) await updateProfile(patch)
 
       // Now owned: take it off the wantlist and start the next search from scratch.
-      if (wanted) await unwant(record.discogs_release_id).catch((e) => console.warn('Wantlist', e))
+      // always try: the list shown may be outdated, and Discogs answers 404 if it was not wanted
+      await unwant(record.discogs_release_id).catch((e) => console.warn('Wantlist', e))
       clearSearch()
 
       if (!discogsCopy) alert('Gespeichert. Hinweis: In deinem Discogs-Konto konnte die Platte nicht eingetragen werden.')
