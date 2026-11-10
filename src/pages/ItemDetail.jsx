@@ -20,12 +20,16 @@ export default function ItemDetail() {
   const [busy, setBusy] = useState(false)
   const [pricesLoading, setPricesLoading] = useState(false)
   const [valueError, setValueError] = useState(null)
+  const [suggestions, setSuggestions] = useState(null) // all conditions, from the last price refresh
 
   const loadPrices = (it) => {
     setPricesLoading(true)
     setValueError(null)
     return refreshPrices(it)
-      .then((r) => setValueError(r.prices.value_error))
+      .then((r) => {
+        setValueError(r.prices.value_error)
+        setSuggestions(r.prices.suggestions ?? null)
+      })
       .catch((e) => setValueError(e.message))
       .finally(() => setPricesLoading(false))
   }
@@ -50,9 +54,11 @@ export default function ItemDetail() {
       let photo_url = item.photo_url
       if (photoFile) photo_url = await uploadPhoto(photoFile, 'records')
       else if (removePhoto) photo_url = null
-      await updateItem(item.id, { ...details, photo_url })
+      const updated = await updateItem(item.id, { ...details, photo_url })
       if (photo_url !== item.photo_url) deletePhoto(item.photo_url)
       setEditing(false)
+      // the value depends on the condition
+      if ((updated.condition ?? null) !== (item.condition ?? null)) loadPrices(updated)
     } catch (e) {
       alert('Speichern fehlgeschlagen: ' + e.message)
     } finally {
@@ -89,6 +95,7 @@ export default function ItemDetail() {
         lowest_price: item.lowest_price_eur,
         updated_at: item.prices_updated_at,
         value_error: valueError,
+        suggestions,
       }}
     >
       <section className="my-copy">

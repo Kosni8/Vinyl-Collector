@@ -71,7 +71,7 @@ export default function ReleaseDetail() {
         photo_url,
         spine_color,
         discogs_instance_id: discogsCopy?.instance_id ?? null,
-        ...PRICE_FIELDS(data.prices),
+        ...PRICE_FIELDS(data.prices, details.condition),
       })
 
       // Put new records on the home shelf while there is room.

@@ -50,9 +50,10 @@ export function VinylDisc({ item }) {
   )
 }
 
-export function VinylColorLabel({ item }) {
+export function VinylColorLabel({ item, showSigned = true }) {
   const discs = discsOf(item)
-  const name = (d) => d.name + (d.pattern && d.pattern !== 'solid' ? ` · ${patternName(d.pattern)}` : '')
+  // pattern always shown, also "Einfarbig", so every record reads the same way
+  const name = (d) => `${d.name} · ${patternName(d.pattern || 'solid')}`
   const allSame = discs.every((d) => name(d) === name(discs[0]))
   return (
     <span className="vinyl-label">
@@ -62,7 +63,7 @@ export function VinylColorLabel({ item }) {
         ))}
       </span>
       <span className="vinyl-label-text">{allSame ? name(discs[0]) : discs.map(name).join(' + ')}</span>
-      {item.signed && <span className="badge">✍︎ Signiert</span>}
+      {showSigned && item.signed && <span className="badge">✍︎ Signiert</span>}
     </span>
   )
 }
