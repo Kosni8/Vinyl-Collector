@@ -1,17 +1,15 @@
 import { Link } from 'react-router-dom'
 import { VinylColorLabel } from './VinylDot.jsx'
 import { money, formatShort } from '../lib/format.js'
-import { useSignedPosition } from '../lib/prefs.js'
 
 /** One record in a list (collection or search results). */
 export default function RecordRow({ to, item, owned, wanted }) {
-  const signedPos = useSignedPosition()
   const isCopy = !!item.id // a copy in the collection (not a search result)
   return (
     <Link to={to} className="record-row">
       <span className="record-cover-wrap">
         <img className="record-cover" src={item.thumb_url || item.cover_url || ''} alt="" loading="lazy" />
-        {isCopy && item.signed && <span className={'signed-tag ' + signedPos}>✍︎ Signiert</span>}
+        {isCopy && item.signed && <span className="signed-tag">✍︎ Signiert</span>}
       </span>
       <div className="record-info">
         <div className="record-title">{item.title}</div>
