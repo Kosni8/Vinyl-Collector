@@ -206,7 +206,7 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
           className="text-input own-shape"
           value={ownShapeText}
           onChange={(e) => setOwnShapeText(e.target.value)}
-          placeholder="Form, z. B. Totenkopf oder Pizza"
+          placeholder="z.B. Wolke oder Blume"
         />
       )}
 
