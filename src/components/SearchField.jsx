@@ -1,3 +1,5 @@
+import { CloseIcon } from './Icons.jsx'
+
 /** Search input with a small clear (×) button on the right. */
 export default function SearchField({ value, onChange, onClear, ...props }) {
   return (
@@ -11,7 +13,7 @@ export default function SearchField({ value, onChange, onClear, ...props }) {
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => (onClear ? onClear() : onChange(''))}
         >
-          ×
+          <CloseIcon width={12} height={12} />
         </button>
       )}
     </div>

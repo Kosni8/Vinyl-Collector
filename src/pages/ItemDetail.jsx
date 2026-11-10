@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../lib/store.jsx'
 import { removeFromDiscogsCollection } from '../lib/discogs.js'
 import { uploadPhoto, deletePhoto } from '../lib/supabase.js'
-import { dateDe } from '../lib/format.js'
+import { dateDe, formatTextDefaults, shapeName, conditionName, discsOf } from '../lib/format.js'
 import RecordDetails from '../components/RecordDetails.jsx'
 import Sheet from '../components/Sheet.jsx'
 import ItemForm from '../components/ItemForm.jsx'
@@ -94,6 +94,13 @@ export default function ItemDetail() {
       <section className="my-copy">
         <h3>Mein Exemplar</h3>
         <VinylColorLabel item={item} />
+        <dl className="facts copy-facts">
+          {(item.size || item.disc_count) && (
+            <div><dt>Format</dt><dd>{[item.size, `${item.disc_count ?? discsOf(item).length}× Vinyl`].filter(Boolean).join(' · ')}</dd></div>
+          )}
+          {item.shape && <div><dt>Form</dt><dd>{shapeName(item.shape)}</dd></div>}
+          {item.condition && <div><dt>Zustand</dt><dd>{conditionName(item.condition)} ({item.condition})</dd></div>}
+        </dl>
         {item.comment && <p className="comment">{item.comment}</p>}
         <p className="muted small">Hinzugefügt am {dateDe(item.added_at)}</p>
       </section>
@@ -108,7 +115,7 @@ export default function ItemDetail() {
         <button className="btn danger block" disabled={busy} onClick={remove}>Aus Sammlung löschen</button>
       </div>
       <Sheet open={editing} onClose={() => !busy && setEditing(false)} title="Exemplar bearbeiten" full>
-        <ItemForm initial={item} cover={item.thumb_url} submitLabel="Speichern" busy={busy} onSubmit={save} />
+        <ItemForm initial={item} defaults={formatTextDefaults(item.format)} cover={item.thumb_url} submitLabel="Speichern" busy={busy} onSubmit={save} />
       </Sheet>
     </RecordDetails>
   )

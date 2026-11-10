@@ -310,5 +310,24 @@ textarea.text-input { resize: vertical; }
 .search-clear {
   position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
   width: 26px; height: 26px; border-radius: 50%; background: #d9cfc3; color: #fff;
-  font-size: 18px; line-height: 26px; text-align: center; font-weight: 700;
+  display: grid; place-items: center;
 }
+.search-clear svg { display: block; }
+/* square button as tall as the search field next to it, icon exactly in the middle */
+.row > .icon-btn.bordered { align-self: stretch; height: auto; width: auto; aspect-ratio: 1; }
+.icon-btn svg { display: block; }
+.vinyl-dots { display: inline-flex; gap: 2px; flex-shrink: 0; }
+.hint { margin: -4px 0 8px; }
+.disc-tabs { margin-bottom: 10px; border-radius: 14px; }
+.disc-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 13px; padding: 8px 4px; border-radius: 10px; }
+.small-link { display: block; font-size: 14px; margin: -2px 0 10px; }
+.chip-sub { font-weight: 400; opacity: 0.75; font-size: 12px; }
+.badge.wanted { background: #f8dde0; margin: 4px 0 0; align-self: flex-start; }
+.copy-facts { margin: 10px 0 0; font-size: 14px; }
+.color-slots { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.color-slot { display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); font-size: 14px; font-weight: 600; }
+.color-slot > button:first-child { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px 6px 6px; }
+.color-slot.on { border-color: var(--ink); }
+.color-slot.add, .color-slot.pending { padding: 8px 14px; border-style: dashed; color: var(--muted); }
+.color-slot.pending { color: var(--ink); }
+.color-slot-x { width: 28px; height: 28px; margin-right: 4px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); font-size: 18px; }

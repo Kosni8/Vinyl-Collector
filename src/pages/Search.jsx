@@ -5,12 +5,19 @@ import { searchVinyl, searchBarcode, fromSearchResult } from '../lib/discogs.js'
 import RecordRow from '../components/RecordRow.jsx'
 import SearchField from '../components/SearchField.jsx'
 import { BarcodeIcon } from '../components/Icons.jsx'
+import { useWantlist, isWanted } from '../lib/wantlist.js'
 
 // Keeps query and results while switching tabs or opening a detail page.
 // The barcode library is large, so it is only loaded when the scanner opens.
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner.jsx'))
 
 const memory = { q: '', barcode: null, results: [], page: 1, pages: 0, country: '' }
+
+/** Forgets query and results (after a record was added); the region filter stays. */
+export function clearSearch() {
+  Object.assign(memory, { q: '', barcode: null, results: [], page: 1, pages: 0 })
+  window.dispatchEvent(new Event('search-reset'))
+}
 
 // Values as Discogs writes them in the "country" field of a release.
 const REGIONS = [
@@ -31,6 +38,7 @@ const REGIONS = [
 
 export default function Search() {
   const { items } = useData()
+  const { wants } = useWantlist()
   const navigate = useNavigate()
   const [q, setQ] = useState(memory.q)
   const [barcode, setBarcode] = useState(memory.barcode)
@@ -59,7 +67,7 @@ export default function Search() {
     setLoading(true)
     setError(null)
     try {
-      const data = code ? await searchBarcode(code) : await searchVinyl(query.trim(), p, region)
+      const data = code ? await searchBarcode(code, region) : await searchVinyl(query.trim(), p, region)
       const rows = data.results.map(fromSearchResult)
       if (code) {
         // Exactly one pressing with this barcode: go straight to its page.
@@ -110,9 +118,9 @@ export default function Search() {
       setBarcode(code)
       setQ('')
       lastRun.current = ''
-      run('', 1, code)
+      run('', 1, code, country)
     },
-    [run],
+    [run, country],
   )
 
   return (
@@ -144,21 +152,20 @@ export default function Search() {
             <BarcodeIcon />
           </button>
         </form>
-        {!barcode && (
-          <select
-            className="select"
-            value={country}
-            onChange={(e) => {
-              setCountry(e.target.value)
-              lastRun.current = q
-              run(q, 1, null, e.target.value)
-            }}
-          >
-            {REGIONS.map(([v, label]) => (
-              <option key={v} value={v}>{label}</option>
-            ))}
-          </select>
-        )}
+        <select
+          className="select"
+          value={country}
+          onChange={(e) => {
+            setCountry(e.target.value)
+            if (barcode) return run('', 1, barcode, e.target.value)
+            lastRun.current = q
+            run(q, 1, null, e.target.value)
+          }}
+        >
+          {REGIONS.map(([v, label]) => (
+            <option key={v} value={v}>{label}</option>
+          ))}
+        </select>
         {barcode && (
           <p className="muted small">
             Barcode {barcode} ·{' '}
@@ -173,7 +180,7 @@ export default function Search() {
 
       <div className="record-list">
         {results.map((r, i) => (
-          <RecordRow key={r.discogs_release_id + '-' + i} to={`/release/${r.discogs_release_id}`} item={r} owned={owned.get(r.discogs_release_id)} />
+          <RecordRow key={r.discogs_release_id + '-' + i} to={`/release/${r.discogs_release_id}`} item={r} owned={owned.get(r.discogs_release_id)} wanted={isWanted(wants, r.discogs_release_id)} />
         ))}
       </div>
       {loading && <p className="muted center">Sucht …</p>}
