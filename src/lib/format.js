@@ -124,7 +124,8 @@ export const COLOR_GROUPS = [
   { id: 'blue', name: 'Blau', hex: '#2e6fd8' },
   { id: 'green', name: 'Grün', hex: '#2e8b57' },
   { id: 'yellow', name: 'Gelb', hex: '#f1c40f' },
-  { id: 'bw', name: 'Schwarz/Weiß', hex: ['#1a1a1a', '#f4f1ea'] },
+  { id: 'black', name: 'Schwarz', hex: '#1a1a1a' },
+  { id: 'white', name: 'Weiß', hex: '#f4f1ea' },
   { id: 'clear', name: 'Durchsichtig', hex: '#d9e4e8', pattern: 'translucent' },
   { id: 'pink', name: 'Pink', hex: '#f78fb3' },
 ]
@@ -136,7 +137,8 @@ export function colorGroupOf(hex = '#000000') {
   const max = Math.max(r, g, b), min = Math.min(r, g, b)
   const l = (max + min) / 2
   const sat = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1))
-  if (sat < 0.18 || l < 0.12 || l > 0.9) return 'bw'
+  // greys go to whichever of black or white is closer
+  if (sat < 0.18 || l < 0.12 || l > 0.9) return l < 0.5 ? 'black' : 'white'
   let h = 0
   if (max === r) h = ((g - b) / (max - min)) % 6
   else if (max === g) h = (b - r) / (max - min) + 2
