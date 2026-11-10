@@ -31,6 +31,9 @@ export const getPrices = (id) => call('prices', { id })
 export const addToDiscogsCollection = (id) => call('addToCollection', { id })
 export const removeFromDiscogsCollection = (id, instance_id) =>
   call('removeFromCollection', { id, instance_id })
+export const getWantlist = (page = 1) => call('wantlist', { page })
+export const addToWantlist = (id) => call('addToWantlist', { id })
+export const removeFromWantlist = (id) => call('removeFromWantlist', { id })
 export const fetchImageBlob = async (url) => (await call('image', { url }, { raw: true })).blob()
 
 // --- normalisation helpers --------------------------------------------------
@@ -93,5 +96,18 @@ export function fromRelease(release) {
     cover_url: primary?.uri ?? null,
     thumb_url: primary?.uri150 ?? release.thumb ?? null,
     images,
+  }
+}
+
+/** Discogs wantlist entry -> small shape for the home page. */
+export function fromWant(w) {
+  const b = w.basic_information ?? {}
+  return {
+    discogs_release_id: b.id ?? w.id,
+    title: b.title ?? '',
+    artist: artistString(b.artists),
+    year: b.year || null,
+    cover_url: b.cover_image || null,
+    thumb_url: b.thumb || null,
   }
 }
