@@ -9,7 +9,8 @@ import ItemPicker from '../components/ItemPicker.jsx'
 import Marquee from '../components/Marquee.jsx'
 import ImageCropper from '../components/ImageCropper.jsx'
 import SpineColorSheet from '../components/SpineColorSheet.jsx'
-import { VinylDisc } from '../components/VinylDot.jsx'
+import { VinylDisc, VinylDot } from '../components/VinylDot.jsx'
+import { discsOf } from '../lib/format.js'
 import { GearIcon, PersonIcon, DiscIcon, NoteIcon } from '../components/Icons.jsx'
 
 function TextSheet({ edit, onClose, onSave }) {
@@ -49,6 +50,102 @@ function ImageButton({ className, onFile, children, label }) {
   )
 }
 
+// Records of an album that look different (colour, name or pattern); empty when all look the same.
+function distinctDiscs(item) {
+  if (!item) return []
+  const discs = discsOf(item)
+  const same = discs.every((d) => JSON.stringify(d) === JSON.stringify(discs[0]))
+  return same ? [] : discs
+}
+
+/** Choose which record of the favourite album is shown on the shelf. */
+function DiscChoice({ item, value, onChange }) {
+  return (
+    <div className="chips">
+      {distinctDiscs(item).map((d, i) => (
+        <button type="button" key={i} className={'chip' + ((value ?? 0) === i ? ' on' : '')} onClick={() => onChange(i)}>
+          <VinylDot color={d.colors} pattern={d.pattern} cover={item.thumb_url} size={20} /> Platte {i + 1}
+          {d.name ? <span className="chip-sub">{d.name}</span> : null}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Turn the record with a finger, like on a turntable: it follows the finger around
+ * its centre and keeps spinning a little when let go. A plain tap still counts as a tap.
+ */
+function useSpin() {
+  const st = useRef({ angle: 0, v: 0, raf: 0, drag: null, moved: false })
+  const apply = (el) => {
+    const art = el?.querySelector('.vinyl-art')
+    if (art) art.style.transform = `rotate(${st.current.angle}deg)`
+  }
+  const angleAt = (el, e) => {
+    const r = el.getBoundingClientRect()
+    return (Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180) / Math.PI
+  }
+  useEffect(() => () => cancelAnimationFrame(st.current.raf), [])
+  return {
+    onPointerDown(e) {
+      const s = st.current
+      cancelAnimationFrame(s.raf)
+      e.currentTarget.setPointerCapture?.(e.pointerId)
+      s.drag = { a: angleAt(e.currentTarget, e), t: e.timeStamp, x: e.clientX, y: e.clientY }
+      s.moved = false
+      s.v = 0
+    },
+    onPointerMove(e) {
+      const s = st.current
+      if (!s.drag) return
+      if (!s.moved && Math.hypot(e.clientX - s.drag.x, e.clientY - s.drag.y) < 6) return
+      s.moved = true
+      const a = angleAt(e.currentTarget, e)
+      let d = a - s.drag.a
+      if (d > 180) d -= 360
+      if (d < -180) d += 360
+      const dt = Math.max(1, e.timeStamp - s.drag.t)
+      s.v = 0.6 * s.v + 0.4 * (d / dt) // degrees per ms, smoothed
+      s.angle += d
+      s.drag.a = a
+      s.drag.t = e.timeStamp
+      apply(e.currentTarget)
+    },
+    onPointerUp(e) {
+      const s = st.current
+      const el = e.currentTarget
+      if (!s.drag) return
+      s.drag = null
+      if (!s.moved) return
+      let last = performance.now()
+      const step = (now) => {
+        const dt = now - last
+        last = now
+        s.angle += s.v * dt
+        s.v *= Math.pow(0.985, dt / 16) // slows down like a turntable left alone
+        apply(el)
+        if (Math.abs(s.v) > 0.005) s.raf = requestAnimationFrame(step)
+      }
+      if (Math.abs(s.v) > 0.02) s.raf = requestAnimationFrame(step)
+    },
+    // true right after a turn, so the following click does not open the picker
+    wasTurned: () => st.current.moved,
+  }
+}
+
+const ICON_COLORS = [
+  { name: 'Rot', hex: '#d9565f' },
+  { name: 'Rosa', hex: '#e88aa6' },
+  { name: 'Orange', hex: '#e67e22' },
+  { name: 'Gold', hex: '#c9a227' },
+  { name: 'Grün', hex: '#2e8b57' },
+  { name: 'Blau', hex: '#2e6fd8' },
+  { name: 'Lila', hex: '#8e44ad' },
+  { name: 'Schwarz', hex: '#1a1a1a' },
+]
+const DEFAULT_ICON = ICON_COLORS[0].hex
+
 const DEFAULT_BG = '#fff8ef'
 const HOME_BGS = [
   { name: 'Creme', hex: DEFAULT_BG },
@@ -62,8 +159,10 @@ const HOME_BGS = [
 ]
 
 function Settings({ open, onClose, onEdit }) {
-  const { profile, updateProfile, refreshAllPrices, progress } = useData()
+  const { profile, items, updateProfile, refreshAllPrices, progress } = useData()
   const bg = profile.home_bg || DEFAULT_BG
+  const icon = profile.fav_icon_color || DEFAULT_ICON
+  const fav = items.find((i) => i.id === profile.fav_album_id)
   const save = (patch) =>
     updateProfile(patch).catch((e) =>
       alert('Speichern fehlgeschlagen: ' + e.message + '\n\nFalls eine Spalte fehlt: Das SQL-Update in Supabase muss noch ausgeführt werden.'),
@@ -102,6 +201,31 @@ function Settings({ open, onClose, onEdit }) {
             {name}
           </button>
         ))}
+      </div>
+
+      {fav && profile.fav_display !== 'cover' && distinctDiscs(fav).length > 0 && (
+        <>
+          <label className="field-label">Welche Platte vom Lieblingsalbum zeigen?</label>
+          <DiscChoice item={fav} value={profile.fav_disc} onChange={(i) => save({ fav_disc: i })} />
+        </>
+      )}
+
+      <label className="field-label">Farbe der Favoriten-Symbole</label>
+      <div className="bg-swatches">
+        {ICON_COLORS.map((c) => (
+          <button
+            key={c.hex}
+            className={'bg-swatch' + (icon.toLowerCase() === c.hex ? ' on' : '')}
+            onClick={() => save({ fav_icon_color: c.hex === DEFAULT_ICON ? null : c.hex })}
+          >
+            <span style={{ background: c.hex }} />
+            <small>{c.name}</small>
+          </button>
+        ))}
+        <label className={'bg-swatch' + (!ICON_COLORS.some((c) => c.hex === icon.toLowerCase()) ? ' on' : '')}>
+          <input type="color" value={icon} onChange={(e) => save({ fav_icon_color: e.target.value })} />
+          <small>Eigene</small>
+        </label>
       </div>
 
       <button className="btn ghost block settings-gap" disabled={!!progress} onClick={refreshAllPrices}>
@@ -162,6 +286,8 @@ export default function Home() {
   const [busy, setBusy] = useState(null)
   const [crop, setCrop] = useState(null) // { field, file }
   const [colorFor, setColorFor] = useState(null) // record whose shelf colour is being chosen
+  const [discFor, setDiscFor] = useState(null) // new favourite album with several different records
+  const spin = useSpin()
 
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items])
   const fav = profile.fav_album_id ? byId.get(profile.fav_album_id) : null
@@ -207,14 +333,17 @@ export default function Home() {
 
   const onPick = async (item) => {
     if (picker === 'fav') {
-      await updateProfile({ fav_album_id: item?.id ?? null })
+      // fav_disc only sent when the column exists (SQL update done)
+      await updateProfile({ fav_album_id: item?.id ?? null, ...(profile.fav_disc != null ? { fav_disc: null } : {}) })
     } else {
       const next = Array.from({ length: SHELF_SLOTS }, (_, i) => profile.shelf?.[i] ?? null)
       next[picker] = item?.id ?? null
       await updateProfile({ shelf: next })
     }
+    const wasFav = picker === 'fav'
     setPicker(null)
-    if (item) setColorFor(item) // second step: choose the colour from the cover
+    if (item && wasFav && showVinyl && distinctDiscs(item).length > 0) setDiscFor(item) // first: which record
+    else if (item) setColorFor(item) // second step: choose the colour from the cover
   }
 
   return (
@@ -239,7 +368,7 @@ export default function Home() {
         <button className="profile-handle" onClick={() => openEdit('handle')}>{profile.handle}</button>
       </section>
 
-      <section className="favorites">
+      <section className="favorites" style={profile.fav_icon_color ? { '--fav-icon': profile.fav_icon_color } : undefined}>
         <button onClick={() => openEdit('artist')}>
           <PersonIcon className="fav-icon" />
           <Marquee speed={16} text={profile.fav_artist || 'Künstler:in'} />
@@ -261,11 +390,12 @@ export default function Home() {
       <section className="shelf" style={{ background: shelfBg }}>
         <button
           className={'shelf-front' + (fav && showVinyl ? ' as-vinyl' : '')}
-          onClick={() => setPicker('fav')}
+          onClick={() => !(fav && showVinyl && spin.wasTurned()) && setPicker('fav')}
           aria-label="Lieblingsalbum"
+          {...(fav && showVinyl ? { onPointerDown: spin.onPointerDown, onPointerMove: spin.onPointerMove, onPointerUp: spin.onPointerUp, onPointerCancel: spin.onPointerUp } : {})}
         >
           {fav && showVinyl ? (
-            <VinylDisc item={fav} />
+            <VinylDisc item={fav} disc={profile.fav_disc ?? 0} />
           ) : fav?.cover_url ? (
             <img src={fav.cover_url} alt={fav.title} />
           ) : (
@@ -299,6 +429,25 @@ export default function Home() {
           }}
         />
       )}
+
+      <Sheet open={!!discFor} onClose={() => { setColorFor(discFor); setDiscFor(null) }} title="Welche Platte zeigen?">
+        <p className="muted small">Das Album hat mehrere Platten. Welche soll im Regal liegen?</p>
+        {discFor && (
+          <DiscChoice
+            item={discFor}
+            value={null}
+            onChange={async (i) => {
+              try {
+                await updateProfile({ fav_disc: i })
+              } catch (e) {
+                alert('Speichern fehlgeschlagen: ' + e.message + '\n\nFalls eine Spalte fehlt: Das SQL-Update in Supabase muss noch ausgeführt werden.')
+              }
+              setColorFor(discFor)
+              setDiscFor(null)
+            }}
+          />
+        )}
+      </Sheet>
 
       <SpineColorSheet
         item={colorFor}
