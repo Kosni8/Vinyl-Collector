@@ -25,6 +25,8 @@ insert into public.profile (id) values (1) on conflict (id) do nothing;
 alter table public.profile add column if not exists home_bg     text;                          -- hex, null = default cream
 alter table public.profile add column if not exists fav_display text not null default 'vinyl'; -- vinyl | cover
 alter table public.profile alter column fav_display set default 'vinyl';
+alter table public.profile add column if not exists fav_disc       int;  -- which record of the favourite album is shown (0 = first)
+alter table public.profile add column if not exists fav_icon_color text; -- colour of the favourite icons, null = default red
 
 -- ---------------------------------------------------------------------------
 -- Collection

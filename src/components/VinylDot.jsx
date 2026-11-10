@@ -249,8 +249,9 @@ export function VinylDot({ color = '#1a1a1a', pattern = 'solid', cover, size = 1
 }
 
 /** Large record with grooves, sheen and the cover as centre label. */
-export function VinylDisc({ item }) {
-  const d = discsOf(item)[0]
+export function VinylDisc({ item, disc = 0 }) {
+  const all = discsOf(item)
+  const d = all[disc] ?? all[0]
   return (
     <span className="vinyl-disc">
       <VinylArt big colors={d.colors} pattern={d.pattern} cover={item.cover_url} label={item.cover_url} />
