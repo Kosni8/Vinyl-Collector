@@ -139,14 +139,8 @@ textarea.text-input { resize: vertical; }
 .shelf-front.as-vinyl { background: transparent; box-shadow: none; overflow: visible; }
 
 /* big record for the favourite album */
-.vinyl-disc { position: relative; display: block; width: 100%; height: 100%; padding: 0; border-radius: 50%; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3); overflow: hidden; }
-.vinyl-disc-grooves { position: absolute; inset: 0; border-radius: 50%; padding: 0;
-  background:
-    conic-gradient(from 40deg, transparent 0 10%, rgba(255, 255, 255, 0.22) 14%, transparent 20% 55%, rgba(255, 255, 255, 0.16) 60%, transparent 66%),
-    repeating-radial-gradient(circle, rgba(0, 0, 0, 0.12) 0 1px, transparent 1px 3px); }
-.vinyl-disc-label { position: absolute; left: 50%; top: 50%; width: 36%; height: 36%; padding: 0; transform: translate(-50%, -50%); border-radius: 50%;
-  background: #e9dfd2 center / cover no-repeat; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25); }
-.vinyl-disc-hole { position: absolute; left: 50%; top: 50%; width: 12%; height: 12%; padding: 0; transform: translate(-50%, -50%); border-radius: 50%; background: var(--home-bg, var(--bg)); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3); }
+.vinyl-disc { position: relative; display: block; width: 100%; height: 100%; padding: 0; border-radius: 50%; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)); }
+.vinyl-disc .vinyl-art { width: 100%; height: 100%; }
 .shelf-spines { display: flex; gap: 5px; }
 .spine {
   flex: 0 0 auto; width: 22px; height: 164px; position: relative; overflow: hidden;
@@ -175,8 +169,7 @@ textarea.text-input { resize: vertical; }
 .vinyl-label { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-top: 3px; min-width: 0; }
 .vinyl-label-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vinyl-label .badge { flex-shrink: 0; margin-left: 0; }
-.vinyl-dot { position: relative; display: inline-block; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
-.vinyl-dot-hole { position: absolute; left: 50%; top: 50%; width: 30%; height: 30%; transform: translate(-50%, -50%); border-radius: 50%; background: var(--bg); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15); }
+.vinyl-art { display: inline-block; flex-shrink: 0; vertical-align: middle; overflow: visible; }
 
 /* ---------- detail ---------- */
 .detail { padding: 0; }
@@ -346,5 +339,4 @@ textarea.text-input { resize: vertical; }
 .record-cover-wrap { position: relative; flex-shrink: 0; }
 .signed-tag { position: absolute; z-index: 1; white-space: nowrap; font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 999px;
   background: var(--ink); color: var(--bg); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
-.signed-tag.top-right { top: -6px; right: -10px; transform: rotate(6deg); }
-.signed-tag.bottom-left { bottom: -6px; left: -6px; transform: rotate(-4deg); }
+.signed-tag { top: -6px; right: -10px; transform: rotate(6deg); }

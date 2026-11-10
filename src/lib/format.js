@@ -34,7 +34,7 @@ export const VINYL_PATTERNS = [
   { id: 'marbled', name: 'Marmoriert' },
   { id: 'splatter', name: 'Splatter' },
   { id: 'split', name: 'Split' },
-  { id: 'filled', name: 'Filled' },
+  { id: 'filled', name: 'Filled (anderes)' },
   { id: 'liquid', name: 'Liquid Filled' },
   { id: 'picture', name: 'Picture Disc' },
 ]
