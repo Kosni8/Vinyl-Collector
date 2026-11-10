@@ -108,7 +108,7 @@ export default function ItemDetail() {
         <button className="btn danger block" disabled={busy} onClick={remove}>Aus Sammlung löschen</button>
       </div>
       <Sheet open={editing} onClose={() => !busy && setEditing(false)} title="Exemplar bearbeiten" full>
-        <ItemForm initial={item} cover={item.thumb_url} submitLabel="Speichern" busy={busy} onSubmit={save} />
+        <ItemForm initial={item} cover={item.thumb_url} coverFull={item.cover_url} submitLabel="Speichern" busy={busy} onSubmit={save} />
       </Sheet>
     </RecordDetails>
   )

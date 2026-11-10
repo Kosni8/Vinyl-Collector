@@ -21,6 +21,10 @@ create table if not exists public.profile (
 
 insert into public.profile (id) values (1) on conflict (id) do nothing;
 
+-- Added later (2026-11): home page settings
+alter table public.profile add column if not exists home_bg     text;                          -- hex, null = default cream
+alter table public.profile add column if not exists fav_display text not null default 'cover'; -- cover | vinyl
+
 -- ---------------------------------------------------------------------------
 -- Collection
 -- ---------------------------------------------------------------------------

@@ -6,8 +6,10 @@ kostenlosen [Supabase](https://supabase.com)-Datenbank, gehostet wird über GitH
 
 ## Funktionen
 
-- **Home:** Titelbild, Profilbild, Name, Lieblings-Künstler:in / -Album / -Song und ein Regal mit dem
-  Lieblingsalbum vorne und bis zu 14 Plattenrücken in der Farbe ihres Covers. Alles lässt sich durch Antippen ändern.
+- **Home:** Titelbild und Profilbild (beim Hochladen zuschneiden und ausrichten), Name, Lieblings-Künstler:in /
+  -Album / -Song und ein Regal mit dem Lieblingsalbum vorne (als Cover oder als Platte in ihrer Farbe) und bis zu
+  14 Plattenrücken in einer Farbe aus ihrem Cover. Ganz unten die Discogs-Wantlist. Hintergrundfarbe in den
+  Einstellungen wählbar. Alles lässt sich durch Antippen ändern.
 - **Sammlung:** Alle Platten mit Cover, Titel, Künstler:in, Jahr, Format, Vinyl-Farbe und Wert.
   Suche nach Album/Künstler:in, Sortierung nach Hinzugefügt, Jahr, Alphabet und Wert.
 - **Suche:** Discogs-Suche, nur Vinyl. Barcode-Scan mit der Kamera. Detailseite mit Bildergalerie,

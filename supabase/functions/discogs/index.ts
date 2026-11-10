@@ -190,6 +190,31 @@ Deno.serve(async (req) => {
         return json({ ok: true })
       }
 
+      case 'wantlist': {
+        // Newest first; 100 per page is the Discogs maximum.
+        const user = await username()
+        const params = new URLSearchParams({
+          per_page: '100',
+          page: String(Number(body.page) || 1),
+          sort: 'added',
+          sort_order: 'desc',
+        })
+        const data = await discogs(`/users/${encodeURIComponent(user)}/wants?${params}`)
+        return json(data)
+      }
+
+      case 'addToWantlist': {
+        const user = await username()
+        const data = await discogs(`/users/${encodeURIComponent(user)}/wants/${Number(body.id)}`, { method: 'PUT' })
+        return json(data ?? { ok: true })
+      }
+
+      case 'removeFromWantlist': {
+        const user = await username()
+        await discogs(`/users/${encodeURIComponent(user)}/wants/${Number(body.id)}`, { method: 'DELETE' })
+        return json({ ok: true })
+      }
+
       case 'image': {
         // Re-serve a Discogs cover with CORS headers so the app can read its
         // pixels (dominant colour for the shelf). Only Discogs hosts allowed.
