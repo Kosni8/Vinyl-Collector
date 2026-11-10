@@ -98,13 +98,13 @@ function Settings({ open, onClose, onEdit }) {
           ['cover', 'Cover'],
           ['vinyl', 'Platte'],
         ].map(([id, name]) => (
-          <button key={id} className={(profile.fav_display || 'cover') === id ? 'on' : ''} onClick={() => save({ fav_display: id })}>
+          <button key={id} className={(profile.fav_display || 'vinyl') === id ? 'on' : ''} onClick={() => save({ fav_display: id })}>
             {name}
           </button>
         ))}
       </div>
 
-      <button className="btn ghost block" disabled={!!progress} onClick={refreshAllPrices}>
+      <button className="btn ghost block settings-gap" disabled={!!progress} onClick={refreshAllPrices}>
         {progress ? `Preise aktualisieren: ${progress.done + 1} / ${progress.total}` : 'Alle Preise aktualisieren'}
       </button>
       <button className="btn danger block" onClick={() => supabase.auth.signOut()}>Abmelden</button>
@@ -121,7 +121,7 @@ function Wantlist() {
       <h2 className="section-title">Wantlist{wants?.length ? <span className="count">{wants.length}</span> : null}</h2>
       {error && <p className="muted small pad">Wantlist nicht ladbar: {error}</p>}
       {!error && !wants && <p className="muted small pad">Lädt …</p>}
-      {wants && !wants.length && <p className="muted small pad">Deine Discogs-Wantlist ist leer.</p>}
+      {wants && !wants.length && <p className="muted small pad">Wantlist ist leer.</p>}
       {wants?.length > 0 && (
         <div className="want-row">
           {wants.map((w) => (
@@ -168,6 +168,7 @@ export default function Home() {
   const shelf = Array.from({ length: SHELF_SLOTS }, (_, i) => byId.get(profile.shelf?.[i]) ?? null)
   const shelfBg = tint(fav?.spine_color ?? '#e8a0a0', 0.75)
   const pageBg = profile.home_bg || DEFAULT_BG
+  const showVinyl = profile.fav_display !== 'cover' // the record is the default
   const pageInk = textOn(pageBg)
   const dark = pageInk === '#ffffff'
 
@@ -241,15 +242,15 @@ export default function Home() {
       <section className="favorites">
         <button onClick={() => openEdit('artist')}>
           <PersonIcon className="fav-icon" />
-          <span className="fav-text">{profile.fav_artist || 'Künstler:in'}</span>
+          <Marquee speed={16} text={profile.fav_artist || 'Künstler:in'} />
         </button>
         <button onClick={() => setPicker('fav')}>
           <DiscIcon className="fav-icon" />
-          <span className="fav-text">{fav?.title || 'Album'}</span>
+          <Marquee speed={16} text={fav?.title || 'Album'} />
         </button>
         <button onClick={() => openEdit('song')}>
           <NoteIcon className="fav-icon" />
-          <span className="fav-text">{profile.fav_song || 'Song'}</span>
+          <Marquee speed={16} text={profile.fav_song || 'Song'} />
         </button>
       </section>
 
@@ -259,11 +260,11 @@ export default function Home() {
 
       <section className="shelf" style={{ background: shelfBg }}>
         <button
-          className={'shelf-front' + (fav && profile.fav_display === 'vinyl' ? ' as-vinyl' : '')}
+          className={'shelf-front' + (fav && showVinyl ? ' as-vinyl' : '')}
           onClick={() => setPicker('fav')}
           aria-label="Lieblingsalbum"
         >
-          {fav && profile.fav_display === 'vinyl' ? (
+          {fav && showVinyl ? (
             <VinylDisc item={fav} />
           ) : fav?.cover_url ? (
             <img src={fav.cover_url} alt={fav.title} />
@@ -286,7 +287,7 @@ export default function Home() {
       {crop && (
         <ImageCropper
           file={crop.file}
-          aspect={crop.field === 'banner_url' ? 2 : 1}
+          aspect={crop.field === 'banner_url' ? 2.5 : 1}
           round={crop.field === 'avatar_url'}
           maxSize={crop.field === 'banner_url' ? 1600 : 600}
           title={crop.field === 'banner_url' ? 'Titelbild' : 'Profilbild'}

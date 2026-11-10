@@ -5,7 +5,7 @@ import { SortIcon, FilterIcon, RefreshIcon } from '../components/Icons.jsx'
 import Sheet from '../components/Sheet.jsx'
 import SearchField from '../components/SearchField.jsx'
 import { VinylDot } from '../components/VinylDot.jsx'
-import { money, VINYL_PATTERNS, patternName, SIZES, sizeOf } from '../lib/format.js'
+import { money, VINYL_PATTERNS, SIZES, sizeOf, COLOR_GROUPS, colorGroupsOfItem, patternsOfItem } from '../lib/format.js'
 
 const SORTS = {
   added: { label: 'Hinzugefügt', fn: (a, b) => new Date(a.added_at) - new Date(b.added_at), defaultAsc: false },
@@ -39,31 +39,23 @@ export default function Collection() {
   Object.assign(memory, { q, sort, asc, colors, patterns, sizes, signed })
   const activeFilters = colors.length + patterns.length + sizes.length + (signed ? 1 : 0)
 
-  // Only offer colours and patterns that exist in the collection.
-  const colorOptions = useMemo(() => {
-    const m = new Map()
-    items.forEach((i) => m.has(i.vinyl_color_name) || m.set(i.vinyl_color_name, i.vinyl_color))
-    return [...m].sort((a, b) => a[0].localeCompare(b[0], 'de'))
-  }, [items])
   const sizeOptions = useMemo(() => SIZES.filter((sz) => items.some((i) => sizeOf(i) === sz)), [items])
-  const patternOptions = useMemo(
-    () => VINYL_PATTERNS.filter((p) => items.some((i) => i.vinyl_pattern === p.id)),
-    [items],
-  )
+  const groupsById = useMemo(() => new Map(items.map((i) => [i.id, colorGroupsOfItem(i)])), [items])
+  const patternsById = useMemo(() => new Map(items.map((i) => [i.id, patternsOfItem(i)])), [items])
 
   const list = useMemo(() => {
     const s = q.trim().toLowerCase()
     const filtered = items.filter(
       (i) =>
         (!s || i.title.toLowerCase().includes(s) || i.artist.toLowerCase().includes(s)) &&
-        (!colors.length || colors.includes(i.vinyl_color_name)) &&
-        (!patterns.length || patterns.includes(i.vinyl_pattern)) &&
+        (!colors.length || colors.some((g) => groupsById.get(i.id).has(g))) &&
+        (!patterns.length || patterns.some((p) => patternsById.get(i.id).has(p))) &&
         (!sizes.length || sizes.includes(sizeOf(i))) &&
         (!signed || i.signed),
     )
     const { fn, directional } = SORTS[sort]
     return filtered.sort((a, b) => (directional ? fn(a, b, asc) : asc ? fn(a, b) : fn(b, a)))
-  }, [items, q, sort, asc, colors, patterns, sizes, signed])
+  }, [items, q, sort, asc, colors, patterns, sizes, signed, groupsById, patternsById])
 
   const total = items.reduce((sum, i) => sum + (Number(i.value_eur) || 0), 0)
 
@@ -120,9 +112,9 @@ export default function Collection() {
       <Sheet open={filterOpen} onClose={() => setFilterOpen(false)} title="Filter">
         <label className="field-label">Farbe</label>
         <div className="chips">
-          {colorOptions.map(([name, hex]) => (
-            <button key={name} className={'chip' + (colors.includes(name) ? ' on' : '')} onClick={() => setColors(toggle(colors, name))}>
-              <VinylDot color={hex} size={16} /> {name}
+          {COLOR_GROUPS.map((g) => (
+            <button key={g.id} className={'chip' + (colors.includes(g.id) ? ' on' : '')} onClick={() => setColors(toggle(colors, g.id))}>
+              <VinylDot color={g.hex} pattern={g.pattern ?? (Array.isArray(g.hex) ? 'split' : 'solid')} size={16} /> {g.name}
             </button>
           ))}
         </div>
@@ -140,9 +132,9 @@ export default function Collection() {
         )}
         <label className="field-label">Muster</label>
         <div className="chips">
-          {patternOptions.map((p) => (
+          {VINYL_PATTERNS.map((p) => (
             <button key={p.id} className={'chip' + (patterns.includes(p.id) ? ' on' : '')} onClick={() => setPatterns(toggle(patterns, p.id))}>
-              {patternName(p.id)}
+              <VinylDot color={['#2e6fd8', '#f4f1ea']} pattern={p.id} size={16} /> {p.name}
             </button>
           ))}
         </div>

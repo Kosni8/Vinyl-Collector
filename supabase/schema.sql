@@ -23,7 +23,8 @@ insert into public.profile (id) values (1) on conflict (id) do nothing;
 
 -- Added later (2026-11): home page settings
 alter table public.profile add column if not exists home_bg     text;                          -- hex, null = default cream
-alter table public.profile add column if not exists fav_display text not null default 'cover'; -- cover | vinyl
+alter table public.profile add column if not exists fav_display text not null default 'vinyl'; -- vinyl | cover
+alter table public.profile alter column fav_display set default 'vinyl';
 
 -- ---------------------------------------------------------------------------
 -- Collection
@@ -66,6 +67,7 @@ alter table public.collection_items add column if not exists discs      jsonb;  
 alter table public.collection_items add column if not exists shape      text;   -- null = round | heart | star | …
 alter table public.collection_items add column if not exists condition  text;   -- M | NM | VG+ | VG | G+ | G | F | P
 alter table public.collection_items add column if not exists value_condition text; -- condition value_eur was taken for (condition, or VG+ as fallback)
+alter table public.collection_items add column if not exists signed_items text[]; -- what is signed: Art-Card | Vinyl Sized | Poster | Cover
 
 do $$
 begin

@@ -116,3 +116,54 @@ export function formatShort(item) {
   const count = item.disc_count ?? formatTextDefaults(item.format).count
   return [sizeOf(item), `${count}x Vinyl`].filter(Boolean).join(' • ')
 }
+
+// Rough colour groups for the collection filter, so the list stays short however
+// many shades are in the collection.
+export const COLOR_GROUPS = [
+  { id: 'red', name: 'Rot', hex: '#c0392b' },
+  { id: 'blue', name: 'Blau', hex: '#2e6fd8' },
+  { id: 'green', name: 'Grün', hex: '#2e8b57' },
+  { id: 'yellow', name: 'Gelb', hex: '#f1c40f' },
+  { id: 'black', name: 'Schwarz', hex: '#1a1a1a' },
+  { id: 'white', name: 'Weiß', hex: '#f4f1ea' },
+  { id: 'clear', name: 'Durchsichtig', hex: '#d9e4e8', pattern: 'translucent' },
+  { id: 'pink', name: 'Pink', hex: '#f78fb3' },
+]
+
+/** Group of one colour: by hue, grey/black/white by low saturation. */
+export function colorGroupOf(hex = '#000000') {
+  const n = parseInt(hex.slice(1, 7), 16)
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  const sat = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1))
+  // greys go to whichever of black or white is closer
+  if (sat < 0.18 || l < 0.12 || l > 0.9) return l < 0.5 ? 'black' : 'white'
+  let h = 0
+  if (max === r) h = ((g - b) / (max - min)) % 6
+  else if (max === g) h = (b - r) / (max - min) + 2
+  else h = (r - g) / (max - min) + 4
+  h = (h * 60 + 360) % 360
+  if (h >= 290 || h < 15) return l > 0.68 || (h >= 290 && h < 340) ? 'pink' : 'red'
+  if (h < 68) return 'yellow' // incl. orange and gold
+  if (h < 170) return 'green'
+  if (h < 265) return 'blue' // incl. light blue and violet-blue
+  return 'pink' // purple / magenta
+}
+
+/** All colour groups of an item (every colour of every record, clear ones too). */
+export function colorGroupsOfItem(item) {
+  const groups = new Set()
+  for (const d of discsOf(item)) {
+    for (const c of d.colors) {
+      // the preset "Transparent" is a pale blue-grey: count it as clear only
+      if (c.toLowerCase() === '#d9e4e8') groups.add('clear')
+      else groups.add(colorGroupOf(c))
+    }
+    if (['translucent', 'liquid'].includes(d.pattern) || /transparent|clear|durchsichtig|klar/i.test(d.name ?? '')) groups.add('clear')
+  }
+  return groups
+}
+
+/** All patterns of an item (every record). */
+export const patternsOfItem = (item) => new Set(discsOf(item).map((d) => d.pattern || 'solid'))
