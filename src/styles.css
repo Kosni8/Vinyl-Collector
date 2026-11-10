@@ -332,3 +332,19 @@ textarea.text-input { resize: vertical; }
 .color-slot.pending { color: var(--ink); }
 .color-slot-x { width: 28px; height: 28px; margin-right: 4px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); font-size: 18px; }
 .own-shape { margin-top: 8px; }
+.price-card { text-align: left; }
+.price-info { padding: 10px 12px; margin: 0 0 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); }
+.price-info.on { border-color: var(--ink); }
+.price-info h3 { margin: 0 0 4px; font-size: 16px; }
+.price-info p { margin: 0; font-size: 14px; line-height: 1.4; }
+.price-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+.price-table td { padding: 5px 4px; border-top: 1px solid var(--line); }
+.price-table td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
+.price-table tr.on td { background: #f4e6c8; }
+/* "Signiert" tag overlapping the cover in the collection list */
+.record-row { overflow: visible; }
+.record-cover-wrap { position: relative; flex-shrink: 0; }
+.signed-tag { position: absolute; z-index: 1; white-space: nowrap; font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 999px;
+  background: var(--ink); color: var(--bg); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+.signed-tag.top-right { top: -6px; right: -10px; transform: rotate(6deg); }
+.signed-tag.bottom-left { bottom: -6px; left: -6px; transform: rotate(-4deg); }

@@ -4,6 +4,7 @@ import { useData, SHELF_SLOTS } from '../lib/store.jsx'
 import { supabase, uploadPhoto, deletePhoto } from '../lib/supabase.js'
 import { textOn, tint } from '../lib/color.js'
 import { useWantlist } from '../lib/wantlist.js'
+import { useSignedPosition, setSignedPosition } from '../lib/prefs.js'
 import Sheet from '../components/Sheet.jsx'
 import ItemPicker from '../components/ItemPicker.jsx'
 import Marquee from '../components/Marquee.jsx'
@@ -64,6 +65,7 @@ const HOME_BGS = [
 function Settings({ open, onClose, onEdit }) {
   const { profile, updateProfile, refreshAllPrices, progress } = useData()
   const bg = profile.home_bg || DEFAULT_BG
+  const signedPos = useSignedPosition()
   const save = (patch) =>
     updateProfile(patch).catch((e) =>
       alert('Speichern fehlgeschlagen: ' + e.message + '\n\nFalls eine Spalte fehlt: Das SQL-Update in Supabase muss noch ausgeführt werden.'),
@@ -99,6 +101,18 @@ function Settings({ open, onClose, onEdit }) {
           ['vinyl', 'Platte'],
         ].map(([id, name]) => (
           <button key={id} className={(profile.fav_display || 'cover') === id ? 'on' : ''} onClick={() => save({ fav_display: id })}>
+            {name}
+          </button>
+        ))}
+      </div>
+
+      <label className="field-label">„Signiert“ in der Sammlung</label>
+      <div className="segmented">
+        {[
+          ['top-right', 'Oben rechts'],
+          ['bottom-left', 'Unten links'],
+        ].map(([id, name]) => (
+          <button key={id} className={signedPos === id ? 'on' : ''} onClick={() => setSignedPosition(id)}>
             {name}
           </button>
         ))}

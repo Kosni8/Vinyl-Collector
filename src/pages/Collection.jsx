@@ -5,7 +5,7 @@ import { SortIcon, FilterIcon, RefreshIcon } from '../components/Icons.jsx'
 import Sheet from '../components/Sheet.jsx'
 import SearchField from '../components/SearchField.jsx'
 import { VinylDot } from '../components/VinylDot.jsx'
-import { money, VINYL_PATTERNS, patternName } from '../lib/format.js'
+import { money, VINYL_PATTERNS, patternName, SIZES, sizeOf } from '../lib/format.js'
 
 const SORTS = {
   added: { label: 'Hinzugefügt', fn: (a, b) => new Date(a.added_at) - new Date(b.added_at), defaultAsc: false },
@@ -13,14 +13,16 @@ const SORTS = {
   title: { label: 'Album A–Z', fn: (a, b) => a.title.localeCompare(b.title, 'de'), defaultAsc: true },
   artist: {
     label: 'Künstler A–Z',
-    fn: (a, b) => a.artist.localeCompare(b.artist, 'de') || (a.year ?? 0) - (b.year ?? 0),
+    // albums of the same artist alphabetically, always A–Z
+    fn: (a, b, asc) => a.artist.localeCompare(b.artist, 'de') * (asc ? 1 : -1) || a.title.localeCompare(b.title, 'de'),
+    directional: true,
     defaultAsc: true,
   },
   value: { label: 'Wert', fn: (a, b) => (Number(a.value_eur) || 0) - (Number(b.value_eur) || 0), defaultAsc: false },
 }
 
 // Remember the view between tab switches.
-const memory = { q: '', sort: 'added', asc: false, colors: [], patterns: [], signed: false }
+const memory = { q: '', sort: 'artist', asc: true, colors: [], patterns: [], sizes: [], signed: false }
 
 const toggle = (list, v) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
 
@@ -32,9 +34,10 @@ export default function Collection() {
   const [colors, setColors] = useState(memory.colors)
   const [patterns, setPatterns] = useState(memory.patterns)
   const [signed, setSigned] = useState(memory.signed)
+  const [sizes, setSizes] = useState(memory.sizes)
   const [filterOpen, setFilterOpen] = useState(false)
-  Object.assign(memory, { q, sort, asc, colors, patterns, signed })
-  const activeFilters = colors.length + patterns.length + (signed ? 1 : 0)
+  Object.assign(memory, { q, sort, asc, colors, patterns, sizes, signed })
+  const activeFilters = colors.length + patterns.length + sizes.length + (signed ? 1 : 0)
 
   // Only offer colours and patterns that exist in the collection.
   const colorOptions = useMemo(() => {
@@ -42,6 +45,7 @@ export default function Collection() {
     items.forEach((i) => m.has(i.vinyl_color_name) || m.set(i.vinyl_color_name, i.vinyl_color))
     return [...m].sort((a, b) => a[0].localeCompare(b[0], 'de'))
   }, [items])
+  const sizeOptions = useMemo(() => SIZES.filter((sz) => items.some((i) => sizeOf(i) === sz)), [items])
   const patternOptions = useMemo(
     () => VINYL_PATTERNS.filter((p) => items.some((i) => i.vinyl_pattern === p.id)),
     [items],
@@ -54,11 +58,12 @@ export default function Collection() {
         (!s || i.title.toLowerCase().includes(s) || i.artist.toLowerCase().includes(s)) &&
         (!colors.length || colors.includes(i.vinyl_color_name)) &&
         (!patterns.length || patterns.includes(i.vinyl_pattern)) &&
+        (!sizes.length || sizes.includes(sizeOf(i))) &&
         (!signed || i.signed),
     )
-    const fn = SORTS[sort].fn
-    return filtered.sort((a, b) => (asc ? fn(a, b) : fn(b, a)))
-  }, [items, q, sort, asc, colors, patterns, signed])
+    const { fn, directional } = SORTS[sort]
+    return filtered.sort((a, b) => (directional ? fn(a, b, asc) : asc ? fn(a, b) : fn(b, a)))
+  }, [items, q, sort, asc, colors, patterns, sizes, signed])
 
   const total = items.reduce((sum, i) => sum + (Number(i.value_eur) || 0), 0)
 
@@ -121,6 +126,18 @@ export default function Collection() {
             </button>
           ))}
         </div>
+        {sizeOptions.length > 0 && (
+          <>
+            <label className="field-label">Größe</label>
+            <div className="chips">
+              {sizeOptions.map((sz) => (
+                <button key={sz} className={'chip' + (sizes.includes(sz) ? ' on' : '')} onClick={() => setSizes(toggle(sizes, sz))}>
+                  {sz.replace('"', ' Zoll')}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         <label className="field-label">Muster</label>
         <div className="chips">
           {patternOptions.map((p) => (
@@ -142,6 +159,7 @@ export default function Collection() {
             onClick={() => {
               setColors([])
               setPatterns([])
+              setSizes([])
               setSigned(false)
             }}
           >

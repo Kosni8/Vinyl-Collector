@@ -126,6 +126,13 @@ async function prices(releaseId: number) {
     value_currency: suggestion?.currency ?? null,
     value_condition: VALUE_CONDITION,
     value_error: valueError,
+    // all conditions, so the app can use the condition of each copy:
+    // { 'Mint (M)': 31.5, 'Near Mint (NM or M-)': 27.1, … } (only values in CURRENCY)
+    suggestions: Object.fromEntries(
+      Object.entries(suggestions ?? {})
+        .filter(([, s]: [string, any]) => s?.currency === CURRENCY && s?.value != null)
+        .map(([k, s]: [string, any]) => [k, s.value]),
+    ),
   }
 }
 

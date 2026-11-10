@@ -8,7 +8,8 @@ export const money = (v, currency = 'EUR') => {
   return eur.format(v)
 }
 
-export const dateDe = (d) => (d ? new Date(d).toLocaleDateString('de-DE') : '')
+export const dateDe = (d) =>
+  d ? new Date(d).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''
 
 export const VINYL_COLORS = [
   { name: 'Schwarz', hex: '#1a1a1a' },
@@ -105,4 +106,13 @@ export function formatTextDefaults(text = '') {
     .reduce((n, m) => n + (Number(m[1]) || 1), 0)
   const size = SIZES.find((s) => text?.includes(s)) ?? (/\bLP\b/.test(text ?? '') ? '12"' : null)
   return { size, count: Math.min(MAX_DISCS, Math.max(1, count || 1)) }
+}
+
+/** Size of an item; older items without a stored size fall back to their Discogs format text. */
+export const sizeOf = (item) => item.size ?? formatTextDefaults(item.format).size
+
+/** Short format line for the collection list, e.g. '7" • 2x Vinyl'. */
+export function formatShort(item) {
+  const count = item.disc_count ?? formatTextDefaults(item.format).count
+  return [sizeOf(item), `${count}x Vinyl`].filter(Boolean).join(' • ')
 }

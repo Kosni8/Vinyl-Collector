@@ -65,6 +65,7 @@ alter table public.collection_items add column if not exists disc_count int;    
 alter table public.collection_items add column if not exists discs      jsonb;  -- [{ colors: [hex…], name, pattern }] per record
 alter table public.collection_items add column if not exists shape      text;   -- null = round | heart | star | …
 alter table public.collection_items add column if not exists condition  text;   -- M | NM | VG+ | VG | G+ | G | F | P
+alter table public.collection_items add column if not exists value_condition text; -- condition value_eur was taken for (condition, or VG+ as fallback)
 
 do $$
 begin

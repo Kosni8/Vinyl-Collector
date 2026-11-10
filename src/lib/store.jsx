@@ -1,17 +1,30 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from './supabase.js'
 import { getPrices } from './discogs.js'
+import { CONDITIONS } from './format.js'
 
 const DataContext = createContext(null)
 export const SHELF_SLOTS = 14
 
-const PRICE_FIELDS = (p) => ({
-  // keep the last known value if Discogs returns none this time
-  ...(p.value != null && (!p.value_currency || p.value_currency === 'EUR') ? { value_eur: p.value } : {}),
-  lowest_price_eur: p.lowest_price,
-  num_for_sale: p.num_for_sale,
-  prices_updated_at: new Date().toISOString(),
-})
+/**
+ * Price columns from a Discogs price answer. The value is the Discogs price
+ * suggestion for the copy's condition; without a condition (or without a
+ * suggestion for it) Very Good Plus is used.
+ */
+const PRICE_FIELDS = (p, condition) => {
+  const own = CONDITIONS.find((c) => c.id === condition)
+  const ownValue = own ? p.suggestions?.[own.discogs] : null
+  const vgPlus = p.suggestions?.[CONDITIONS.find((c) => c.id === 'VG+').discogs] ??
+    (p.value != null && (!p.value_currency || p.value_currency === 'EUR') ? p.value : null)
+  const value = ownValue ?? vgPlus
+  return {
+    // keep the last known value if Discogs returns none this time
+    ...(value != null ? { value_eur: value, value_condition: ownValue != null ? own.id : 'VG+' } : {}),
+    lowest_price_eur: p.lowest_price,
+    num_for_sale: p.num_for_sale,
+    prices_updated_at: new Date().toISOString(),
+  }
+}
 
 export function DataProvider({ children }) {
   const [profile, setProfile] = useState(null)
@@ -78,7 +91,7 @@ export function DataProvider({ children }) {
   const refreshPrices = useCallback(
     async (item) => {
       const p = await getPrices(item.discogs_release_id)
-      const updated = await updateItem(item.id, PRICE_FIELDS(p))
+      const updated = await updateItem(item.id, PRICE_FIELDS(p, item.condition))
       return { item: updated, prices: p }
     },
     [updateItem],
