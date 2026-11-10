@@ -59,6 +59,13 @@ create table if not exists public.collection_items (
 
 create index if not exists collection_items_added_at_idx on public.collection_items (added_at desc);
 
+-- Added later (2026-11): more details per copy
+alter table public.collection_items add column if not exists size       text;   -- 12" | 10" | 7" | 4"
+alter table public.collection_items add column if not exists disc_count int;    -- 1–4
+alter table public.collection_items add column if not exists discs      jsonb;  -- [{ colors: [hex…], name, pattern }] per record
+alter table public.collection_items add column if not exists shape      text;   -- null = round | heart | star | …
+alter table public.collection_items add column if not exists condition  text;   -- M | NM | VG+ | VG | G+ | G | F | P
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'profile_fav_album_fk') then

@@ -25,7 +25,7 @@ async function call(action, params = {}, { raw = false } = {}) {
 }
 
 export const searchVinyl = (q, page = 1, country = '') => call('search', { q, page, country })
-export const searchBarcode = (barcode) => call('search', { barcode })
+export const searchBarcode = (barcode, country = '') => call('search', { barcode, country })
 export const getRelease = (id) => call('release', { id })
 export const getPrices = (id) => call('prices', { id })
 export const addToDiscogsCollection = (id) => call('addToCollection', { id })

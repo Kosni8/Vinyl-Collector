@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useData, SHELF_SLOTS } from '../lib/store.jsx'
 import { supabase, uploadPhoto, deletePhoto } from '../lib/supabase.js'
 import { textOn, tint } from '../lib/color.js'
-import { getWantlist, fromWant } from '../lib/discogs.js'
+import { useWantlist } from '../lib/wantlist.js'
 import Sheet from '../components/Sheet.jsx'
 import ItemPicker from '../components/ItemPicker.jsx'
 import Marquee from '../components/Marquee.jsx'
@@ -113,16 +113,8 @@ function Settings({ open, onClose, onEdit }) {
 }
 
 /** The Discogs wantlist as a row of covers. */
-let wantCache = null // keeps the last list while the app is open, so Home does not flicker
-
 function Wantlist() {
-  const [wants, setWants] = useState(wantCache)
-  const [error, setError] = useState(null)
-  useEffect(() => {
-    getWantlist()
-      .then((d) => setWants((wantCache = (d.wants ?? []).map(fromWant))))
-      .catch((e) => !wantCache && setError(e.message))
-  }, [])
+  const { wants, error } = useWantlist({ refresh: true })
 
   return (
     <section className="wantlist">

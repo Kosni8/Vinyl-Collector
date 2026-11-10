@@ -7,6 +7,9 @@ import { coverColor } from '../lib/color.js'
 import RecordDetails from '../components/RecordDetails.jsx'
 import Sheet from '../components/Sheet.jsx'
 import ItemForm from '../components/ItemForm.jsx'
+import { vinylFormatDefaults } from '../lib/format.js'
+import { useWantlist, isWanted, want, unwant } from '../lib/wantlist.js'
+import { clearSearch } from './Search.jsx'
 
 const cache = new Map()
 
@@ -18,6 +21,8 @@ export default function ReleaseDetail() {
   const [error, setError] = useState(null)
   const [adding, setAdding] = useState(false)
   const [busy, setBusy] = useState(false)
+  const { wants } = useWantlist()
+  const [wantBusy, setWantBusy] = useState(false)
 
   useEffect(() => {
     if (cache.has(id)) return
@@ -34,6 +39,19 @@ export default function ReleaseDetail() {
 
   const record = fromRelease(data.release)
   const owned = items.filter((i) => i.discogs_release_id === record.discogs_release_id)
+  const wanted = isWanted(wants, record.discogs_release_id)
+
+  const toggleWant = async () => {
+    setWantBusy(true)
+    try {
+      if (wanted) await unwant(record.discogs_release_id)
+      else await want(record)
+    } catch (e) {
+      alert('Wantlist: ' + e.message)
+    } finally {
+      setWantBusy(false)
+    }
+  }
 
   const save = async (form) => {
     setBusy(true)
@@ -67,6 +85,10 @@ export default function ReleaseDetail() {
       if (!profile.fav_album_id) patch.fav_album_id = item.id
       if (Object.keys(patch).length) await updateProfile(patch)
 
+      // Now owned: take it off the wantlist and start the next search from scratch.
+      if (wanted) await unwant(record.discogs_release_id).catch((e) => console.warn('Wantlist', e))
+      clearSearch()
+
       if (!discogsCopy) alert('Gespeichert. Hinweis: In deinem Discogs-Konto konnte die Platte nicht eingetragen werden.')
       navigate(`/sammlung/${item.id}`, { replace: true })
     } catch (e) {
@@ -90,8 +112,11 @@ export default function ReleaseDetail() {
       <button className="btn primary block" onClick={() => setAdding(true)}>
         {owned.length ? 'Weiteres Exemplar hinzufügen' : 'Zur Sammlung hinzufügen'}
       </button>
+      <button className="btn ghost block" disabled={wantBusy || !wants} onClick={toggleWant}>
+        {wantBusy ? 'Wantlist …' : wanted ? '♥ Auf der Wantlist · entfernen' : '♡ Auf die Wantlist'}
+      </button>
       <Sheet open={adding} onClose={() => !busy && setAdding(false)} title="Zur Sammlung hinzufügen" full>
-        <ItemForm cover={record.thumb_url} submitLabel="Hinzufügen" busy={busy} onSubmit={save} />
+        <ItemForm defaults={vinylFormatDefaults(data.release.formats)} cover={record.thumb_url} submitLabel="Hinzufügen" busy={busy} onSubmit={save} />
       </Sheet>
     </RecordDetails>
   )
