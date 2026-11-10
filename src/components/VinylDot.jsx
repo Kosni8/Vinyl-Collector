@@ -47,27 +47,35 @@ function sectorPath(i, n) {
   return `M${C} ${C}L${x0} ${y0}A51 51 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${x1} ${y1}Z`
 }
 
-/**
- * Marble swirls: soft-edged blobs of one colour from low-frequency noise, pulled
- * into swirls by a second noise (displacement), like colours stirred into the vinyl.
- */
-function MarbleLayer({ id, color, seed, opacity = 1, freq = "0.012 0.04", cut = 0.52 }) {
-  // alpha = (noise - cut) * 9  → blob shapes with a soft edge
-  const alpha = `9 0 0 0 ${(-cut * 9).toFixed(2)}`
-  return (
-    <>
-      <filter id={id} x="0" y="0" width="100" height="100" filterUnits="userSpaceOnUse">
-        <feTurbulence type="fractalNoise" baseFrequency={freq} numOctaves="2" seed={seed} result="noise" />
-        <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="1" seed={seed + 11} result="warp" />
-        <feDisplacementMap in="noise" in2="warp" scale="40" xChannelSelector="R" yChannelSelector="G" result="swirl" />
-        <feColorMatrix in="swirl" type="matrix" values={`0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  ${alpha}`} result="blobs" />
-        <feGaussianBlur in="blobs" stdDeviation="0.5" result="soft" />
-        <feFlood floodColor={color} floodOpacity={opacity} />
-        <feComposite operator="in" in2="soft" />
-      </filter>
-      <rect width="100" height="100" filter={`url(#${id})`} />
-    </>
-  )
+/** A smoky streak that follows the groove direction (around the centre) and drifts in and out. */
+function wispPath(rand, short = false) {
+  const steps = 16
+  let a = rand() * Math.PI * 2
+  let r = 20 + rand() * 28
+  const span = short ? 0.15 + rand() * 0.55 : 0.5 + rand() * 1.5
+  const drift = (rand() - 0.5) * 9 // radius change over the whole streak
+  const wobble = 0.6 + rand() * 1.6
+  const phase = rand() * 6
+  const pts = []
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps
+    const rr = Math.min(49, Math.max(19, r + drift * t + wobble * Math.sin(phase + t * 7)))
+    pts.push(polar(rr, a + span * t))
+  }
+  return 'M' + pts.map((p) => p.map((v) => v.toFixed(2)).join(' ')).join('L')
+}
+
+/** Splash streak: round head nearer the centre, tapering to a point outwards. */
+function streakPath(rand) {
+  const a = rand() * Math.PI * 2 + (rand() - 0.5) * 0.15
+  const r0 = 19 + rand() * 27
+  const len = 2 + rand() * rand() * 15
+  const w = 0.3 + rand() * 1.15
+  const [hx, hy] = polar(r0, a)
+  const [tx, ty] = polar(Math.min(50, r0 + len), a + (rand() - 0.5) * 0.04)
+  const nx = -Math.sin(a) * w, ny = Math.cos(a) * w
+  const f = (v) => v.toFixed(2)
+  return `M${f(hx + nx)} ${f(hy + ny)}A${f(w)} ${f(w)} 0 0 1 ${f(hx - nx)} ${f(hy - ny)}L${f(tx)} ${f(ty)}Z`
 }
 
 function PatternFill({ uid, colors, pattern, cover, seedText }) {
@@ -91,44 +99,49 @@ function PatternFill({ uid, colors, pattern, cover, seedText }) {
           <circle cx="36" cy="32" r="30" fill="#ffffff" opacity="0.18" />
         </>
       )
-    case 'marbled': {
-      const second = c1 ?? (luminance(c0) > 0.55 ? '#6b6b6b' : '#f4f1ea')
+    case 'marbled': { // smoky colour swirls running around the record
+      const smoke = colors.length > 1 ? colors.slice(1) : [luminance(c0) > 0.55 ? '#2b2622' : '#e9e4dc']
+      const soft = [], sharp = []
+      for (let i = 0; i < 42; i++) {
+        soft.push(
+          <path key={i} d={wispPath(rand)} stroke={smoke[i % smoke.length]} strokeWidth={3 + rand() * 6}
+            strokeOpacity={0.1 + rand() * 0.22} fill="none" strokeLinecap="round" strokeLinejoin="round" />,
+        )
+      }
+      for (let i = 0; i < 22; i++) {
+        sharp.push(
+          <path key={i} d={wispPath(rand, true)} stroke={smoke[i % smoke.length]} strokeWidth={0.5 + rand() * 1.6}
+            strokeOpacity={0.35 + rand() * 0.45} fill="none" strokeLinecap="round" strokeLinejoin="round" />,
+        )
+      }
       return (
         <>
+          <filter id={`${uid}sm`} x="-10" y="-10" width="120" height="120" filterUnits="userSpaceOnUse">
+            <feGaussianBlur stdDeviation="2.2" />
+          </filter>
+          <filter id={`${uid}sh`} x="-10" y="-10" width="120" height="120" filterUnits="userSpaceOnUse">
+            <feGaussianBlur stdDeviation="0.6" />
+          </filter>
           <rect width="100" height="100" fill={c0} />
-          <MarbleLayer id={`${uid}m1`} color={second} seed={Math.floor(rand() * 90) + 1} cut={0.5} />
-          {c2 && <MarbleLayer id={`${uid}m2`} color={c2} seed={Math.floor(rand() * 90) + 1} freq="0.016 0.05" cut={0.56} />}
-          {!c2 && <MarbleLayer id={`${uid}m2`} color={contrast(second)} seed={Math.floor(rand() * 90) + 1} freq="0.02 0.06" cut={0.62} opacity={0.3} />}
+          <g filter={`url(#${uid}sm)`}>{soft}</g>
+          <g filter={`url(#${uid}sh)`}>{sharp}</g>
         </>
       )
     }
-    case 'splatter': {
+    case 'splatter': { // splashes flung outwards from the centre
       const splat = colors.length > 1 ? colors.slice(1) : [contrast(c0)]
-      const dots = []
-      for (let i = 0; i < 38; i++) {
-        const big = rand() < 0.3
-        const r = big ? 2.6 + rand() * 3 : 0.7 + rand() * 1.6
-        const [x, y] = polar(Math.sqrt(rand()) * 47, rand() * Math.PI * 2)
-        const fill = splat[i % splat.length]
-        dots.push(
-          big ? (
-            <path key={i} d={blobPath(r, r * 0.22, rand)} transform={`translate(${x - C} ${y - C})`} fill={fill} />
-          ) : (
-            <circle key={i} cx={x} cy={y} r={r} fill={fill} />
-          ),
-        )
-        if (big) {
-          // little droplets around a big splash
-          for (let j = 0; j < 3; j++) {
-            const [dx, dy] = [x + (rand() - 0.5) * r * 3.2, y + (rand() - 0.5) * r * 3.2]
-            dots.push(<circle key={`${i}-${j}`} cx={dx} cy={dy} r={0.4 + rand() * 0.8} fill={fill} />)
-          }
-        }
+      const marks = []
+      for (let i = 0; i < 90; i++) {
+        marks.push(<path key={i} d={streakPath(rand)} fill={splat[i % splat.length]} />)
+      }
+      for (let i = 0; i < 40; i++) {
+        const [x, y] = polar(19 + rand() * 30, rand() * Math.PI * 2)
+        marks.push(<circle key={`d${i}`} cx={x} cy={y} r={0.25 + rand() * 0.7} fill={splat[i % splat.length]} />)
       }
       return (
         <>
           <rect width="100" height="100" fill={c0} />
-          {dots}
+          {marks}
         </>
       )
     }
