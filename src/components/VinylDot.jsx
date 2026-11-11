@@ -95,21 +95,34 @@ function PatternFill({ uid, colors, pattern, cover, seedText, overlay = false })
   if (overlay && ['solid', 'split', 'picture'].includes(pattern)) return null
   const base = (fill, props) => (overlay ? null : <rect width="100" height="100" fill={fill} {...props} />)
   switch (pattern) {
-    case 'glitter': { // fine sparkles all over the record
-      const sparkle = colors.length > 1 ? colors.slice(1) : [luminance(c0) > 0.6 ? '#b8912a' : '#fff6d8']
-      const dots = []
-      for (let i = 0; i < 160; i++) {
-        const [x, y] = polar(17 + Math.sqrt(rand()) * 33, rand() * Math.PI * 2)
-        dots.push(<circle key={i} cx={x} cy={y} r={0.2 + rand() * rand() * 0.9} fill={sparkle[i % sparkle.length]} opacity={0.45 + rand() * 0.55} />)
+    case 'glitter': { // dense, fine metallic sparkle with a few bright glints
+      const sparkle = colors.length > 1 ? colors.slice(1) : [luminance(c0) > 0.6 ? '#b8912a' : '#fff1c4']
+      const shades = [...sparkle, '#ffffff', luminance(c0) > 0.5 ? '#00000055' : '#ffffff99']
+      const specks = []
+      // grain: light and dark flecks in the record's own colour, so the whole surface shimmers
+      for (let i = 0; i < 700; i++) {
+        const [x, y] = polar(16 + Math.sqrt(rand()) * 34, rand() * Math.PI * 2)
+        specks.push(<circle key={`g${i}`} cx={x} cy={y} r={0.25 + rand() * 0.45} fill={i % 2 ? '#ffffff' : '#000000'} opacity={0.08 + rand() * 0.18} />)
       }
-      for (let i = 0; i < 16; i++) {
-        const [x, y] = polar(20 + rand() * 28, rand() * Math.PI * 2)
-        dots.push(<path key={`s${i}`} d={starPath(x, y, 1.2 + rand() * 1.8)} fill={sparkle[i % sparkle.length]} opacity={0.75 + rand() * 0.25} />)
+      // the glitter itself
+      for (let i = 0; i < 650; i++) {
+        const [x, y] = polar(16 + Math.sqrt(rand()) * 34, rand() * Math.PI * 2)
+        specks.push(<circle key={i} cx={x} cy={y} r={0.15 + rand() * 0.4} fill={shades[i % shades.length]} opacity={0.4 + rand() * 0.6} />)
+      }
+      for (let i = 0; i < 5; i++) {
+        const [x, y] = polar(22 + rand() * 25, rand() * Math.PI * 2)
+        specks.push(<path key={`s${i}`} d={starPath(x, y, 0.9 + rand() * 0.9)} fill="#ffffff" opacity={0.9} />)
       }
       return (
         <>
+          <radialGradient id={`${uid}gl`} cx="0.35" cy="0.3" r="0.8">
+            <stop offset="0" stopColor="#ffffff" stopOpacity="0.28" />
+            <stop offset="0.5" stopColor="#ffffff" stopOpacity="0.05" />
+            <stop offset="1" stopColor="#000000" stopOpacity="0.12" />
+          </radialGradient>
           {base(c0)}
-          {dots}
+          {specks}
+          <rect width="100" height="100" fill={`url(#${uid}gl)`} />
         </>
       )
     }
