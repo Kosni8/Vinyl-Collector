@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useData, SHELF_SLOTS } from '../lib/store.jsx'
 import { supabase, uploadPhoto, deletePhoto } from '../lib/supabase.js'
 import { textOn, tint } from '../lib/color.js'
 import { useWantlist } from '../lib/wantlist.js'
+import { getRelease } from '../lib/discogs.js'
+import { useAddToCollection, getReleaseCached } from '../lib/collect.js'
+import { orderDateText, isDue, sortOrders } from '../lib/orders.js'
+import { vinylFormatDefaults } from '../lib/format.js'
+import OrderSheet from '../components/OrderSheet.jsx'
+import ItemForm from '../components/ItemForm.jsx'
 import Sheet from '../components/Sheet.jsx'
 import ItemPicker from '../components/ItemPicker.jsx'
 import Marquee from '../components/Marquee.jsx'
@@ -11,7 +17,7 @@ import ImageCropper from '../components/ImageCropper.jsx'
 import SpineColorSheet from '../components/SpineColorSheet.jsx'
 import { VinylDisc, VinylDot } from '../components/VinylDot.jsx'
 import { discsOf, sizeOf } from '../lib/format.js'
-import { GearIcon, PersonIcon, DiscIcon, NoteIcon } from '../components/Icons.jsx'
+import { GearIcon, PersonIcon, DiscIcon, NoteIcon, CheckIcon } from '../components/Icons.jsx'
 
 function TextSheet({ edit, onClose, onSave }) {
   const [value, setValue] = useState(edit?.value ?? '')
@@ -266,6 +272,99 @@ function Wantlist() {
   )
 }
 
+/** Records ordered but not arrived yet, soonest first. */
+function Ordered() {
+  const { orders, updateOrder } = useData()
+  const navigate = useNavigate()
+  const addToCollection = useAddToCollection()
+  const [dateFor, setDateFor] = useState(null) // order whose date is being changed
+  const [arrived, setArrived] = useState(null) // { order, data } while the add form is open
+  const [loadingId, setLoadingId] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  if (!orders.length) return null
+  const list = sortOrders(orders)
+
+  const openArrived = async (order) => {
+    setLoadingId(order.id)
+    try {
+      const data = await getReleaseCached(order.discogs_release_id, getRelease)
+      setArrived({ order, data })
+    } catch (e) {
+      alert('Discogs nicht erreichbar: ' + e.message)
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  // Saving the form adds the record and takes it off this list; cancelling keeps it here.
+  const save = async (form) => {
+    setBusy(true)
+    try {
+      const { item, discogsOk } = await addToCollection(arrived.data, form)
+      if (!discogsOk) alert('Gespeichert. Hinweis: In deinem Discogs-Konto konnte die Platte nicht eingetragen werden.')
+      setArrived(null)
+      navigate(`/sammlung/${item.id}`)
+    } catch (e) {
+      alert('Speichern fehlgeschlagen: ' + e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="ordered">
+      <h2 className="section-title">Bestellt<span className="count">{orders.length}</span></h2>
+      <div className="order-list">
+        {list.map((o) => (
+          <div key={o.id} className="order-card">
+            <Link to={`/release/${o.discogs_release_id}`} className="order-main">
+              {o.thumb_url || o.cover_url ? <img className="order-cover" src={o.thumb_url || o.cover_url} alt="" loading="lazy" /> : <span className="order-cover" />}
+              <span className="order-text">
+                <strong className="ellipsis">{o.title}</strong>
+                <span className="order-artist ellipsis">{o.artist}</span>
+              </span>
+            </Link>
+            <button className={'order-date' + (o.date ? '' : ' empty') + (isDue(o) ? ' due' : '')} onClick={() => setDateFor(o)}>
+              {orderDateText(o) ?? '+ Datum eintragen'}
+            </button>
+            <button
+              className={'order-arrived' + (isDue(o) ? ' due' : '')}
+              onClick={() => openArrived(o)}
+              disabled={loadingId === o.id}
+              aria-label={`${o.title} ist angekommen`}
+            >
+              {loadingId === o.id ? '…' : <CheckIcon width={22} height={22} />}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <OrderSheet
+        open={!!dateFor}
+        onClose={() => setDateFor(null)}
+        title="Datum ändern"
+        order={dateFor}
+        onSave={async (dates) => {
+          await updateOrder(dateFor.id, dates)
+          setDateFor(null)
+        }}
+      />
+      <Sheet open={!!arrived} onClose={() => !busy && setArrived(null)} title="Zur Sammlung hinzufügen" full>
+        {arrived && (
+          <ItemForm
+            defaults={vinylFormatDefaults(arrived.data.release.formats)}
+            cover={arrived.order.thumb_url}
+            submitLabel="Hinzufügen"
+            busy={busy}
+            onSubmit={save}
+          />
+        )}
+      </Sheet>
+    </section>
+  )
+}
+
 function Spine({ item, label, onClick, tilt }) {
   return (
     <button
@@ -427,6 +526,8 @@ export default function Home() {
       </section>
 
       <Wantlist />
+
+      <Ordered />
 
       {crop && (
         <ImageCropper

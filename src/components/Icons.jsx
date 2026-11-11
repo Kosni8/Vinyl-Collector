@@ -44,3 +44,6 @@ export const RefreshIcon = (p) => (
 export const CloseIcon = (p) => (
   <svg {...base} {...p} strokeWidth={2.6}><path d="M6 6l12 12M18 6 6 18" /></svg>
 )
+export const CheckIcon = (p) => (
+  <svg {...base} {...p} strokeWidth={2.6}><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+)

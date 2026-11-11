@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useData, SHELF_SLOTS, PRICE_FIELDS } from '../lib/store.jsx'
-import { getRelease, fromRelease, addToDiscogsCollection } from '../lib/discogs.js'
-import { uploadPhoto } from '../lib/supabase.js'
-import { coverColor } from '../lib/color.js'
+import { useData } from '../lib/store.jsx'
+import { getRelease, fromRelease } from '../lib/discogs.js'
+import { useAddToCollection, getReleaseCached, cachedRelease } from '../lib/collect.js'
+import { orderDateText } from '../lib/orders.js'
+import OrderSheet from '../components/OrderSheet.jsx'
 import RecordDetails from '../components/RecordDetails.jsx'
 import Sheet from '../components/Sheet.jsx'
 import ItemForm from '../components/ItemForm.jsx'
@@ -11,13 +12,13 @@ import { vinylFormatDefaults } from '../lib/format.js'
 import { useWantlist, isWanted, want, unwant } from '../lib/wantlist.js'
 import { clearSearch } from './Search.jsx'
 
-const cache = new Map()
-
 export default function ReleaseDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { items, profile, addItem, updateProfile } = useData()
-  const [data, setData] = useState(cache.get(id) ?? null)
+  const { items, orders, addOrder, updateOrder, deleteOrder } = useData()
+  const addToCollection = useAddToCollection()
+  const [data, setData] = useState(cachedRelease(id))
+  const [ordering, setOrdering] = useState(false)
   const [error, setError] = useState(null)
   const [adding, setAdding] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -25,12 +26,9 @@ export default function ReleaseDetail() {
   const [wantBusy, setWantBusy] = useState(false)
 
   useEffect(() => {
-    if (cache.has(id)) return
-    getRelease(id)
-      .then((d) => {
-        cache.set(id, d)
-        setData(d)
-      })
+    if (cachedRelease(id)) return
+    getReleaseCached(id, getRelease)
+      .then(setData)
       .catch((e) => setError(e.message))
   }, [id])
 
@@ -40,6 +38,7 @@ export default function ReleaseDetail() {
   const record = fromRelease(data.release)
   const owned = items.filter((i) => i.discogs_release_id === record.discogs_release_id)
   const wanted = isWanted(wants, record.discogs_release_id)
+  const order = orders.find((o) => o.discogs_release_id === record.discogs_release_id)
 
   const toggleWant = async () => {
     setWantBusy(true)
@@ -56,46 +55,33 @@ export default function ReleaseDetail() {
   const save = async (form) => {
     setBusy(true)
     try {
-      const { photoFile, removePhoto, ...details } = form
-      const [photo_url, spine_color, discogsCopy] = await Promise.all([
-        photoFile ? uploadPhoto(photoFile, 'records') : null,
-        coverColor(record.cover_url),
-        addToDiscogsCollection(record.discogs_release_id).catch((e) => {
-          console.warn('Discogs-Sammlung', e)
-          return null
-        }),
-      ])
-      const item = await addItem({
-        ...record,
-        ...details,
-        photo_url,
-        spine_color,
-        discogs_instance_id: discogsCopy?.instance_id ?? null,
-        ...PRICE_FIELDS(data.prices, details.condition),
-      })
-
-      // Put new records on the home shelf while there is room.
-      const shelf = Array.from({ length: SHELF_SLOTS }, (_, i) => profile.shelf?.[i] ?? null)
-      const free = shelf.indexOf(null)
-      const patch = {}
-      if (free !== -1) {
-        shelf[free] = item.id
-        patch.shelf = shelf
-      }
-      if (!profile.fav_album_id) patch.fav_album_id = item.id
-      if (Object.keys(patch).length) await updateProfile(patch)
-
-      // Now owned: take it off the wantlist and start the next search from scratch.
-      // always try: the list shown may be outdated, and Discogs answers 404 if it was not wanted
-      await unwant(record.discogs_release_id).catch((e) => console.warn('Wantlist', e))
-      clearSearch()
-
-      if (!discogsCopy) alert('Gespeichert. Hinweis: In deinem Discogs-Konto konnte die Platte nicht eingetragen werden.')
+      const { item, discogsOk } = await addToCollection(data, form)
+      clearSearch() // start the next search from scratch
+      if (!discogsOk) alert('Gespeichert. Hinweis: In deinem Discogs-Konto konnte die Platte nicht eingetragen werden.')
       navigate(`/sammlung/${item.id}`, { replace: true })
     } catch (e) {
       alert('Speichern fehlgeschlagen: ' + e.message)
       setBusy(false)
     }
+  }
+
+  const saveOrder = async (dates) => {
+    if (order) await updateOrder(order.id, dates)
+    else
+      await addOrder({
+        discogs_release_id: record.discogs_release_id,
+        title: record.title,
+        artist: record.artist,
+        cover_url: record.cover_url,
+        thumb_url: record.thumb_url,
+        ...dates,
+      })
+    setOrdering(false)
+  }
+
+  const removeOrder = async () => {
+    await deleteOrder(order.id)
+    setOrdering(false)
   }
 
   return (
@@ -116,6 +102,18 @@ export default function ReleaseDetail() {
       <button className="btn ghost block" disabled={wantBusy || !wants} onClick={toggleWant}>
         {wantBusy ? 'Wantlist …' : wanted ? '♥ Auf der Wantlist · entfernen' : '♡ Auf die Wantlist'}
       </button>
+      <button className="btn ghost block" onClick={() => setOrdering(true)}>
+        {order ? `Bestellt${orderDateText(order) ? ' · ' + orderDateText(order) : ''} · ändern` : 'Platte bestellt'}
+      </button>
+      <OrderSheet
+        open={ordering}
+        onClose={() => setOrdering(false)}
+        title={order ? 'Bestellung ändern' : 'Platte bestellt'}
+        order={order}
+        submitLabel={order ? 'Speichern' : 'Zu „Bestellt“ hinzufügen'}
+        onSave={saveOrder}
+        onRemove={order ? removeOrder : undefined}
+      />
       <Sheet open={adding} onClose={() => !busy && setAdding(false)} title="Zur Sammlung hinzufügen" full>
         <ItemForm defaults={vinylFormatDefaults(data.release.formats)} cover={record.thumb_url} submitLabel="Hinzufügen" busy={busy} onSubmit={save} />
       </Sheet>
