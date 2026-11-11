@@ -140,8 +140,11 @@ textarea.text-input { resize: vertical; }
 .shelf-front.as-vinyl { background: transparent; box-shadow: none; overflow: visible; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
 /* big record for the favourite album */
-.vinyl-disc { position: relative; display: block; width: 100%; height: 100%; padding: 0; border-radius: 50%; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)); }
-.vinyl-disc .vinyl-art { width: 100%; height: 100%; }
+/* The shadow sits on the non-turning outer part and the turning part is its own GPU layer,
+   so turning only rotates a finished picture instead of redrawing the whole record. */
+.vinyl-disc { position: relative; display: block; width: 100%; height: 100%; padding: 0; border-radius: 50%; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }
+.vinyl-rot { display: block; width: 100%; height: 100%; border-radius: 50%; will-change: transform; transform: translateZ(0); backface-visibility: hidden; }
+.vinyl-disc .vinyl-art { display: block; width: 100%; height: 100%; }
 .shelf-spines { display: flex; gap: 5px; }
 .spine {
   flex: 0 0 auto; width: 22px; height: 164px; position: relative; overflow: hidden;

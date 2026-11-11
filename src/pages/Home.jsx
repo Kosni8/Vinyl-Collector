@@ -79,8 +79,8 @@ function DiscChoice({ item, value, onChange }) {
 function useSpin() {
   const st = useRef({ angle: 0, v: 0, raf: 0, drag: null, moved: false })
   const apply = (el) => {
-    const art = el?.querySelector('.vinyl-art')
-    if (art) art.style.transform = `rotate(${st.current.angle}deg)`
+    const art = el?.querySelector('.vinyl-rot')
+    if (art) art.style.transform = `rotate(${st.current.angle}deg) translateZ(0)`
   }
   const angleAt = (el, e) => {
     const r = el.getBoundingClientRect()
