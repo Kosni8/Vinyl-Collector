@@ -314,7 +314,7 @@ function Ordered() {
 
   return (
     <section className="ordered">
-      <h2 className="section-title">Bestellt<span className="count">{orders.length}</span></h2>
+      <h2 className="section-title">Bestellte Platten<span className="count">{orders.length}</span></h2>
       <div className="order-list">
         {list.map((o) => (
           <div key={o.id} className="order-card">
