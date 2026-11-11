@@ -10,7 +10,7 @@ import Marquee from '../components/Marquee.jsx'
 import ImageCropper from '../components/ImageCropper.jsx'
 import SpineColorSheet from '../components/SpineColorSheet.jsx'
 import { VinylDisc, VinylDot } from '../components/VinylDot.jsx'
-import { discsOf } from '../lib/format.js'
+import { discsOf, sizeOf } from '../lib/format.js'
 import { GearIcon, PersonIcon, DiscIcon, NoteIcon } from '../components/Icons.jsx'
 
 function TextSheet({ edit, onClose, onSave }) {
@@ -134,6 +134,11 @@ function useSpin() {
   }
 }
 
+const is12Inch = (item) => {
+  const size = sizeOf(item)
+  return !size || size === '12"'
+}
+
 const ICON_COLORS = [
   { name: 'Rot', hex: '#d9565f' },
   { name: 'Rosa', hex: '#e88aa6' },
@@ -162,7 +167,7 @@ function Settings({ open, onClose, onEdit }) {
   const { profile, items, updateProfile, refreshAllPrices, progress } = useData()
   const bg = profile.home_bg || DEFAULT_BG
   const icon = profile.fav_icon_color || DEFAULT_ICON
-  const fav = items.find((i) => i.id === profile.fav_album_id)
+  const front = items.find((i) => i.id === (profile.shelf_record_id ?? profile.fav_album_id))
   const save = (patch) =>
     updateProfile(patch).catch((e) =>
       alert('Speichern fehlgeschlagen: ' + e.message + '\n\nFalls eine Spalte fehlt: Das SQL-Update in Supabase muss noch ausgeführt werden.'),
@@ -191,7 +196,7 @@ function Settings({ open, onClose, onEdit }) {
         </label>
       </div>
 
-      <label className="field-label">Lieblingsalbum im Regal zeigen als</label>
+      <label className="field-label">Platte im Regal zeigen als</label>
       <div className="segmented">
         {[
           ['cover', 'Cover'],
@@ -203,10 +208,10 @@ function Settings({ open, onClose, onEdit }) {
         ))}
       </div>
 
-      {fav && profile.fav_display !== 'cover' && distinctDiscs(fav).length > 0 && (
+      {front && profile.fav_display !== 'cover' && distinctDiscs(front).length > 0 && (
         <>
-          <label className="field-label">Welche Platte vom Lieblingsalbum zeigen?</label>
-          <DiscChoice item={fav} value={profile.fav_disc} onChange={(i) => save({ fav_disc: i })} />
+          <label className="field-label">Welche Platte von „{front.title}“ zeigen?</label>
+          <DiscChoice item={front} value={profile.fav_disc} onChange={(i) => save({ fav_disc: i })} />
         </>
       )}
 
@@ -261,10 +266,10 @@ function Wantlist() {
   )
 }
 
-function Spine({ item, label, onClick }) {
+function Spine({ item, label, onClick, tilt }) {
   return (
     <button
-      className={'spine' + (item ? '' : ' empty')}
+      className={'spine' + (item ? '' : ' empty') + (tilt ? ' tilt' : '')}
       style={item ? { background: item.spine_color ?? '#888', color: textOn(item.spine_color ?? '#888') } : undefined}
       onClick={onClick}
       aria-label={item ? `${label ? label + ': ' : ''}${item.title} – ${item.artist}` : 'Leerer Platz'}
@@ -281,7 +286,7 @@ function Spine({ item, label, onClick }) {
 export default function Home() {
   const { profile, items, updateProfile, updateItem } = useData()
   const [edit, setEdit] = useState(null)
-  const [picker, setPicker] = useState(null) // 'fav' | slot index
+  const [picker, setPicker] = useState(null) // 'fav' (favourite album) | 'front' (record in the shelf) | slot index
   const [settings, setSettings] = useState(false)
   const [busy, setBusy] = useState(null)
   const [crop, setCrop] = useState(null) // { field, file }
@@ -292,7 +297,10 @@ export default function Home() {
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items])
   const fav = profile.fav_album_id ? byId.get(profile.fav_album_id) : null
   const shelf = Array.from({ length: SHELF_SLOTS }, (_, i) => byId.get(profile.shelf?.[i]) ?? null)
-  const shelfBg = tint(fav?.spine_color ?? '#e8a0a0', 0.75)
+  // The record shown big in the shelf (any size), separate from the favourite album (12" only).
+  // Until one is chosen, the favourite album is shown, like before.
+  const front = byId.get(profile.shelf_record_id ?? profile.fav_album_id) ?? null
+  const shelfBg = tint(front?.spine_color ?? '#e8a0a0', 0.75)
   const pageBg = profile.home_bg || DEFAULT_BG
   const showVinyl = profile.fav_display !== 'cover' // the record is the default
   const pageInk = textOn(pageBg)
@@ -333,16 +341,24 @@ export default function Home() {
 
   const onPick = async (item) => {
     if (picker === 'fav') {
-      // fav_disc only sent when the column exists (SQL update done)
-      await updateProfile({ fav_album_id: item?.id ?? null, ...(profile.fav_disc != null ? { fav_disc: null } : {}) })
+      await updateProfile({ fav_album_id: item?.id ?? null })
+      setPicker(null)
+      return // the favourite album only fills its box: no shelf colour needed
+    } else if (picker === 'front') {
+      try {
+        await updateProfile({ shelf_record_id: item?.id ?? null, fav_disc: null })
+      } catch (e) {
+        alert('Speichern fehlgeschlagen: ' + e.message + '\n\nFalls eine Spalte fehlt: Das SQL-Update in Supabase muss noch ausgeführt werden.')
+        return
+      }
     } else {
       const next = Array.from({ length: SHELF_SLOTS }, (_, i) => profile.shelf?.[i] ?? null)
       next[picker] = item?.id ?? null
       await updateProfile({ shelf: next })
     }
-    const wasFav = picker === 'fav'
+    const wasFront = picker === 'front'
     setPicker(null)
-    if (item && wasFav && showVinyl && distinctDiscs(item).length > 0) setDiscFor(item) // first: which record
+    if (item && wasFront && showVinyl && distinctDiscs(item).length > 0) setDiscFor(item) // first: which record
     else if (item) setColorFor(item) // second step: choose the colour from the cover
   }
 
@@ -389,23 +405,21 @@ export default function Home() {
 
       <section className="shelf" style={{ background: shelfBg }}>
         <button
-          className={'shelf-front' + (fav && showVinyl ? ' as-vinyl' : '')}
-          onClick={() => !(fav && showVinyl && spin.wasTurned()) && setPicker('fav')}
-          aria-label="Lieblingsalbum"
-          {...(fav && showVinyl ? { onPointerDown: spin.onPointerDown, onPointerMove: spin.onPointerMove, onPointerUp: spin.onPointerUp, onPointerCancel: spin.onPointerUp } : {})}
+          className={'shelf-front' + (front && showVinyl ? ' as-vinyl' : '')}
+          onClick={() => !(front && showVinyl && spin.wasTurned()) && setPicker('front')}
+          aria-label="Platte im Regal"
+          {...(front && showVinyl ? { onPointerDown: spin.onPointerDown, onPointerMove: spin.onPointerMove, onPointerUp: spin.onPointerUp, onPointerCancel: spin.onPointerUp } : {})}
         >
-          {fav && showVinyl ? (
-            <VinylDisc item={fav} disc={profile.fav_disc ?? 0} />
-          ) : fav?.cover_url ? (
-            <img src={fav.cover_url} alt={fav.title} />
+          {front && showVinyl ? (
+            <VinylDisc item={front} disc={profile.fav_disc ?? 0} />
+          ) : front?.cover_url ? (
+            <img src={front.cover_url} alt={front.title} />
           ) : (
-            <span>Lieblingsalbum wählen</span>
+            <span>Platte wählen</span>
           )}
         </button>
         <div className="shelf-spines">
-          {fav && (
-            <Spine item={fav} label="Lieblingsalbum" onClick={() => setPicker('fav')} />
-          )}
+          {front && <Spine tilt item={front} label="Platte im Regal" onClick={() => setPicker('front')} />}
           {shelf.map((it, i) => (
             <Spine key={i} item={it} onClick={() => setPicker(i)} />
           ))}
@@ -474,8 +488,10 @@ export default function Home() {
       />
       <ItemPicker
         open={picker !== null}
-        title={picker === 'fav' ? 'Lieblingsalbum wählen' : 'Platte fürs Regal wählen'}
-        allowClear={picker !== null}
+        title={picker === 'fav' ? 'Lieblingsalbum wählen' : picker === 'front' ? 'Platte fürs Regal wählen' : 'Rücken fürs Regal wählen'}
+        filter={picker === 'fav' ? is12Inch : undefined}
+        hint={picker === 'fav' ? 'Nur 12-Zoll-Platten. Die große Platte im Regal wählst du separat, indem du auf sie tippst.' : undefined}
+        allowClear={picker !== null && picker !== 'front'}
         onClose={() => setPicker(null)}
         onPick={onPick}
       />

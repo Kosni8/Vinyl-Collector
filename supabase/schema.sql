@@ -27,6 +27,7 @@ alter table public.profile add column if not exists fav_display text not null de
 alter table public.profile alter column fav_display set default 'vinyl';
 alter table public.profile add column if not exists fav_disc       int;  -- which record of the favourite album is shown (0 = first)
 alter table public.profile add column if not exists fav_icon_color text; -- colour of the favourite icons, null = default red
+alter table public.profile add column if not exists shelf_record_id uuid; -- record shown big in the home shelf (any size); null = favourite album
 
 -- ---------------------------------------------------------------------------
 -- Collection
@@ -76,6 +77,10 @@ begin
   if not exists (select 1 from pg_constraint where conname = 'profile_fav_album_fk') then
     alter table public.profile add constraint profile_fav_album_fk
       foreign key (fav_album_id) references public.collection_items (id) on delete set null;
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'profile_shelf_record_fk') then
+    alter table public.profile add constraint profile_shelf_record_fk
+      foreign key (shelf_record_id) references public.collection_items (id) on delete set null;
   end if;
 end $$;
 
