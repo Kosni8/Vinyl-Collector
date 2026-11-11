@@ -152,7 +152,10 @@ textarea.text-input { resize: vertical; }
 }
 /* the record lying in front leans a little against the others */
 /* turned on its bottom left corner, so the top right corner rests on the next spine */
-.spine.tilt { transform: rotate(6deg); transform-origin: bottom left; margin: 0 12px 0 2px; }
+/* shortened and nudged up so the tilted spine ends flush with the others at top and bottom:
+   tilted height = h·cos6° + w·sin6° = 164px → h = (164 − 22·0.1045) / 0.9945 ≈ 162.6px;
+   the top corner then sits h·(1 − cos6°) ≈ 0.9px low, which the translate takes back */
+.spine.tilt { height: 162.6px; transform: translateY(-0.9px) rotate(6deg); transform-origin: bottom left; margin: 0 12px 0 2px; }
 .spine.empty { background: rgba(0, 0, 0, 0.12); box-shadow: none; }
 .spine-text {
   position: absolute; inset: 6px 0; display: flex; align-items: stretch; justify-content: center;
@@ -250,6 +253,7 @@ textarea.text-input { resize: vertical; }
 
 /* ---------- ordered records (home, under the wantlist) ---------- */
 .ordered { padding-bottom: 16px; }
+.order-empty { margin: 0; padding: 0 16px; }
 .order-list { display: grid; gap: 10px; padding: 0 16px; }
 .order-card {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 8px;

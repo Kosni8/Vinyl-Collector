@@ -282,7 +282,6 @@ function Ordered() {
   const [loadingId, setLoadingId] = useState(null)
   const [busy, setBusy] = useState(false)
 
-  if (!orders.length) return null
   const list = sortOrders(orders)
 
   const openArrived = async (order) => {
@@ -314,7 +313,8 @@ function Ordered() {
 
   return (
     <section className="ordered">
-      <h2 className="section-title">Bestellte Platten<span className="count">{orders.length}</span></h2>
+      <h2 className="section-title">Bestellte Platten{orders.length > 0 && <span className="count">{orders.length}</span>}</h2>
+      {!orders.length && <p className="muted small order-empty">Gerade ist nichts bestellt. Über die Suche kannst du bei einer Platte „Platte bestellt“ antippen.</p>}
       <div className="order-list">
         {list.map((o) => (
           <div key={o.id} className="order-card">
