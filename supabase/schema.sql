@@ -118,3 +118,22 @@ create policy "photos_update" on storage.objects
 drop policy if exists "photos_delete" on storage.objects;
 create policy "photos_delete" on storage.objects
   for delete to authenticated using (bucket_id = 'photos');
+
+-- ---------------------------------------------------------------------------
+-- Added 2026-11: records ordered but not arrived yet (home, under the wantlist)
+-- ---------------------------------------------------------------------------
+create table if not exists public.orders (
+  id                 uuid primary key default gen_random_uuid(),
+  discogs_release_id bigint not null,
+  title              text not null,
+  artist             text,
+  cover_url          text,
+  thumb_url          text,
+  date               date,                              -- optional
+  date_kind          text not null default 'delivery',  -- delivery | release
+  created_at         timestamptz not null default now()
+);
+alter table public.orders enable row level security;
+drop policy if exists "orders_rw" on public.orders;
+create policy "orders_rw" on public.orders
+  for all to authenticated using (true) with check (true);

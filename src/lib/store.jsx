@@ -29,6 +29,7 @@ const PRICE_FIELDS = (p, condition) => {
 export function DataProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [items, setItems] = useState([])
+  const [orders, setOrders] = useState([]) // records ordered but not arrived yet
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -42,6 +43,10 @@ export function DataProvider({ children }) {
     if (p.data) setProfile(p.data)
     if (i.data) setItems(i.data)
     setLoading(false)
+    // separate, so the app still works before the orders table exists
+    const o = await supabase.from('orders').select('*').order('created_at', { ascending: true })
+    if (o.error) console.warn('Bestellt-Liste', o.error.message)
+    else setOrders(o.data)
   }, [])
 
   useEffect(() => {
@@ -88,6 +93,26 @@ export function DataProvider({ children }) {
     [profile, updateProfile],
   )
 
+  const addOrder = useCallback(async (row) => {
+    const { data, error } = await supabase.from('orders').insert(row).select().single()
+    if (error) throw error
+    setOrders((prev) => [...prev, data])
+    return data
+  }, [])
+
+  const updateOrder = useCallback(async (id, patch) => {
+    const { data, error } = await supabase.from('orders').update(patch).eq('id', id).select().single()
+    if (error) throw error
+    setOrders((prev) => prev.map((o) => (o.id === id ? data : o)))
+    return data
+  }, [])
+
+  const deleteOrder = useCallback(async (id) => {
+    const { error } = await supabase.from('orders').delete().eq('id', id)
+    if (error) throw error
+    setOrders((prev) => prev.filter((o) => o.id !== id))
+  }, [])
+
   const refreshPrices = useCallback(
     async (item) => {
       const p = await getPrices(item.discogs_release_id)
@@ -116,8 +141,8 @@ export function DataProvider({ children }) {
   }, [items, progress, refreshPrices])
 
   const value = useMemo(
-    () => ({ profile, items, loading, error, reload, updateProfile, addItem, updateItem, deleteItem, refreshPrices, refreshAllPrices, progress }),
-    [profile, items, loading, error, reload, updateProfile, addItem, updateItem, deleteItem, refreshPrices, refreshAllPrices, progress],
+    () => ({ profile, items, orders, loading, error, reload, updateProfile, addItem, updateItem, deleteItem, addOrder, updateOrder, deleteOrder, refreshPrices, refreshAllPrices, progress }),
+    [profile, items, orders, loading, error, reload, updateProfile, addItem, updateItem, deleteItem, addOrder, updateOrder, deleteOrder, refreshPrices, refreshAllPrices, progress],
   )
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
