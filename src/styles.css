@@ -148,7 +148,8 @@ textarea.text-input { resize: vertical; }
   box-shadow: inset -2px 0 0 rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 /* the record lying in front leans a little against the others */
-.spine.tilt { transform: rotate(-6deg); transform-origin: bottom right; margin: 0 4px 0 18px; }
+/* turned on its bottom left corner, so the top right corner rests on the next spine */
+.spine.tilt { transform: rotate(6deg); transform-origin: bottom left; margin: 0 12px 0 2px; }
 .spine.empty { background: rgba(0, 0, 0, 0.12); box-shadow: none; }
 .spine-text {
   position: absolute; inset: 6px 0; display: flex; align-items: stretch; justify-content: center;
