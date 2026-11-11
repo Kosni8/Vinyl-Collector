@@ -310,7 +310,9 @@ export function VinylDisc({ item, disc = 0 }) {
   const d = all[disc] ?? all[0]
   return (
     <span className="vinyl-disc">
-      <VinylArt big colors={d.colors} pattern={d.pattern} cover={item.cover_url} label={item.cover_url} />
+      <span className="vinyl-rot">
+        <VinylArt big colors={d.colors} pattern={d.pattern} cover={item.cover_url} label={item.cover_url} />
+      </span>
     </span>
   )
 }
