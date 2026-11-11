@@ -6,12 +6,18 @@ import RecordRow from '../components/RecordRow.jsx'
 import SearchField from '../components/SearchField.jsx'
 import { BarcodeIcon } from '../components/Icons.jsx'
 import { useWantlist, isWanted } from '../lib/wantlist.js'
+import { getPendingPlaceholder, setPendingPlaceholder } from '../lib/orders.js'
 
 // Keeps query and results while switching tabs or opening a detail page.
 // The barcode library is large, so it is only loaded when the scanner opens.
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner.jsx'))
 
-const memory = { q: '', barcode: null, results: [], page: 1, pages: 0, country: '' }
+const memory = { q: '', barcode: null, results: [], page: 1, pages: 0, country: '', autorun: false }
+
+/** Opens the search with this query already typed in and searched. */
+export function startSearch(q) {
+  Object.assign(memory, { q, barcode: null, results: [], page: 1, pages: 0, autorun: true })
+}
 
 /** Forgets query and results (after a record was added); the region filter stays. */
 export function clearSearch() {
@@ -49,7 +55,14 @@ export default function Search() {
   const [error, setError] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [country, setCountry] = useState(memory.country)
-  const lastRun = useRef(memory.q)
+  const lastRun = useRef(memory.autorun ? '' : memory.q) // '' lets a started search run at once
+  memory.autorun = false
+  const [pending, setPending] = useState(getPendingPlaceholder)
+  useEffect(() => {
+    const update = () => setPending(getPendingPlaceholder())
+    window.addEventListener('pending-placeholder', update)
+    return () => window.removeEventListener('pending-placeholder', update)
+  }, [])
   Object.assign(memory, { q, barcode, results, page, pages, country })
 
   const owned = useMemo(() => {
@@ -174,6 +187,15 @@ export default function Search() {
         )}
       </div>
 
+      {pending && (
+        <div className="pending-note">
+          <p>
+            Du suchst die Platte für den Platzhalter <strong>„{pending.title}“</strong>. Öffne die passende Platte: Dort kannst du sie zur
+            Sammlung hinzufügen oder den Platzhalter ersetzen.
+          </p>
+          <button className="link-btn" onClick={() => setPendingPlaceholder(null)}>Abbrechen</button>
+        </div>
+      )}
       {error && <p className="error center">{error}</p>}
       {!loading && !error && (q || barcode) && !results.length && <p className="muted center">Keine Vinyls gefunden.</p>}
       {!q && !barcode && !results.length && <p className="muted center">Suche nach Album oder Künstler, oder scanne den Barcode auf der Rückseite der Platte.</p>}

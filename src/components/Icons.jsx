@@ -47,3 +47,6 @@ export const CloseIcon = (p) => (
 export const CheckIcon = (p) => (
   <svg {...base} {...p} strokeWidth={2.6}><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
 )
+export const PlusIcon = (p) => (
+  <svg {...base} {...p}><path d="M12 5v14M5 12h14" /></svg>
+)

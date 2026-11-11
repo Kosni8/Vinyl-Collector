@@ -254,6 +254,12 @@ textarea.text-input { resize: vertical; }
 /* ---------- ordered records (home, under the wantlist) ---------- */
 .ordered { padding-bottom: 16px; }
 .order-empty { margin: 0; padding: 0 16px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; padding-right: 6px; }
+.section-head .icon-btn { margin-top: 18px; color: var(--home-ink, var(--ink)); }
+.order-main { text-align: left; padding: 0; color: inherit; }
+.order-cover.empty { display: grid; place-items: center; color: var(--muted); }
+.pending-note { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: #f4e6c8; font-size: 14px; }
+.pending-note p { margin: 0 0 6px; }
 .order-list { display: grid; gap: 10px; padding: 0 16px; }
 .order-card {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 8px;

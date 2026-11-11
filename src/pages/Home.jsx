@@ -6,7 +6,8 @@ import { textOn, tint } from '../lib/color.js'
 import { useWantlist } from '../lib/wantlist.js'
 import { getRelease } from '../lib/discogs.js'
 import { useAddToCollection, getReleaseCached } from '../lib/collect.js'
-import { orderDateText, isDue, sortOrders } from '../lib/orders.js'
+import { orderDateText, isDue, sortOrders, isPlaceholder, setPendingPlaceholder } from '../lib/orders.js'
+import { startSearch } from './Search.jsx'
 import { vinylFormatDefaults } from '../lib/format.js'
 import OrderSheet from '../components/OrderSheet.jsx'
 import ItemForm from '../components/ItemForm.jsx'
@@ -17,7 +18,7 @@ import ImageCropper from '../components/ImageCropper.jsx'
 import SpineColorSheet from '../components/SpineColorSheet.jsx'
 import { VinylDisc, VinylDot } from '../components/VinylDot.jsx'
 import { discsOf, sizeOf } from '../lib/format.js'
-import { GearIcon, PersonIcon, DiscIcon, NoteIcon, CheckIcon } from '../components/Icons.jsx'
+import { GearIcon, PersonIcon, DiscIcon, NoteIcon, CheckIcon, PlusIcon } from '../components/Icons.jsx'
 
 function TextSheet({ edit, onClose, onSave }) {
   const [value, setValue] = useState(edit?.value ?? '')
@@ -272,19 +273,59 @@ function Wantlist() {
   )
 }
 
+function OrderCardBody({ order: o }) {
+  return (
+    <>
+      {o.thumb_url || o.cover_url ? <img className="order-cover" src={o.thumb_url || o.cover_url} alt="" loading="lazy" /> : <span className="order-cover empty"><DiscIcon width={28} height={28} /></span>}
+      <span className="order-text">
+        <strong className="ellipsis">{o.title}</strong>
+        <span className="order-artist ellipsis">{o.artist}</span>
+      </span>
+    </>
+  )
+}
+
 /** Records ordered but not arrived yet, soonest first. */
 function Ordered() {
-  const { orders, updateOrder } = useData()
+  const { orders, addOrder, updateOrder, deleteOrder } = useData()
   const navigate = useNavigate()
   const addToCollection = useAddToCollection()
   const [dateFor, setDateFor] = useState(null) // order whose date is being changed
+  const [editing, setEditing] = useState(null) // placeholder being added ({}) or edited
   const [arrived, setArrived] = useState(null) // { order, data } while the add form is open
   const [loadingId, setLoadingId] = useState(null)
   const [busy, setBusy] = useState(false)
 
   const list = sortOrders(orders)
 
+  // A placeholder is not on Discogs yet: look for it in the search; adding the found
+  // record to the collection removes the placeholder.
+  const findOnDiscogs = (order) => {
+    setPendingPlaceholder(order)
+    startSearch([order.artist, order.title].filter(Boolean).join(' '))
+    navigate('/suche')
+  }
+
+  const savePlaceholder = async ({ photoFile, removePhoto, ...fields }) => {
+    const old = editing?.cover_url ?? null
+    let cover_url = old
+    if (photoFile) cover_url = await uploadPhoto(photoFile, 'orders', 800)
+    else if (removePhoto) cover_url = null
+    const row = { ...fields, cover_url, thumb_url: cover_url }
+    if (editing?.id) await updateOrder(editing.id, row)
+    else await addOrder(row)
+    if (old && old !== cover_url) deletePhoto(old)
+    setEditing(null)
+  }
+
+  const removePlaceholder = async () => {
+    await deleteOrder(editing.id)
+    deletePhoto(editing.cover_url)
+    setEditing(null)
+  }
+
   const openArrived = async (order) => {
+    if (isPlaceholder(order)) return findOnDiscogs(order)
     setLoadingId(order.id)
     try {
       const data = await getReleaseCached(order.discogs_release_id, getRelease)
@@ -313,18 +354,25 @@ function Ordered() {
 
   return (
     <section className="ordered">
-      <h2 className="section-title">Bestellte Platten{orders.length > 0 && <span className="count">{orders.length}</span>}</h2>
+      <div className="section-head">
+        <h2 className="section-title">Bestellte Platten{orders.length > 0 && <span className="count">{orders.length}</span>}</h2>
+        <button className="icon-btn" onClick={() => setEditing({})} aria-label="Platte hinzufügen, die noch nicht auf Discogs ist">
+          <PlusIcon />
+        </button>
+      </div>
       {!orders.length && <p className="muted small order-empty">Gerade ist nichts bestellt. Über die Suche kannst du bei einer Platte „Platte bestellt“ antippen.</p>}
       <div className="order-list">
         {list.map((o) => (
           <div key={o.id} className="order-card">
-            <Link to={`/release/${o.discogs_release_id}`} className="order-main">
-              {o.thumb_url || o.cover_url ? <img className="order-cover" src={o.thumb_url || o.cover_url} alt="" loading="lazy" /> : <span className="order-cover" />}
-              <span className="order-text">
-                <strong className="ellipsis">{o.title}</strong>
-                <span className="order-artist ellipsis">{o.artist}</span>
-              </span>
-            </Link>
+            {isPlaceholder(o) ? (
+              <button className="order-main" onClick={() => setEditing(o)}>
+                <OrderCardBody order={o} />
+              </button>
+            ) : (
+              <Link to={`/release/${o.discogs_release_id}`} className="order-main">
+                <OrderCardBody order={o} />
+              </Link>
+            )}
             <button className={'order-date' + (o.date ? '' : ' empty') + (isDue(o) ? ' due' : '')} onClick={() => setDateFor(o)}>
               {orderDateText(o) ?? '+ Datum eintragen'}
             </button>
@@ -340,6 +388,24 @@ function Ordered() {
         ))}
       </div>
 
+      <OrderSheet
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        title={editing?.id ? 'Platzhalter bearbeiten' : 'Platte ohne Discogs-Eintrag'}
+        order={editing}
+        withDetails
+        submitLabel={editing?.id ? 'Speichern' : 'Hinzufügen'}
+        onSave={savePlaceholder}
+        onRemove={editing?.id ? removePlaceholder : undefined}
+      >
+        {editing?.id ? (
+          <button type="button" className="btn ghost block" onClick={() => findOnDiscogs(editing)}>
+            Auf Discogs suchen und ersetzen
+          </button>
+        ) : (
+          <p className="muted small">Gibt es die Platte später auf Discogs, tipp auf die Karte und dann auf „Auf Discogs suchen und ersetzen“.</p>
+        )}
+      </OrderSheet>
       <OrderSheet
         open={!!dateFor}
         onClose={() => setDateFor(null)}

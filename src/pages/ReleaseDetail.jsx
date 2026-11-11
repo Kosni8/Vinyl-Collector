@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../lib/store.jsx'
 import { getRelease, fromRelease } from '../lib/discogs.js'
 import { useAddToCollection, getReleaseCached, cachedRelease } from '../lib/collect.js'
-import { orderDateText } from '../lib/orders.js'
+import { orderDateText, getPendingPlaceholder, setPendingPlaceholder } from '../lib/orders.js'
+import { deletePhoto } from '../lib/supabase.js'
 import OrderSheet from '../components/OrderSheet.jsx'
 import RecordDetails from '../components/RecordDetails.jsx'
 import Sheet from '../components/Sheet.jsx'
@@ -39,6 +40,9 @@ export default function ReleaseDetail() {
   const owned = items.filter((i) => i.discogs_release_id === record.discogs_release_id)
   const wanted = isWanted(wants, record.discogs_release_id)
   const order = orders.find((o) => o.discogs_release_id === record.discogs_release_id)
+  // a placeholder from "Bestellte Platten" being looked for in the search
+  const pendingId = getPendingPlaceholder()?.id
+  const placeholder = orders.find((o) => o.id === pendingId && o.discogs_release_id == null)
 
   const toggleWant = async () => {
     setWantBusy(true)
@@ -79,6 +83,29 @@ export default function ReleaseDetail() {
     setOrdering(false)
   }
 
+  // The placeholder becomes a normal order of this record; its date stays.
+  const replacePlaceholder = async () => {
+    setBusy(true)
+    try {
+      if (order) await deleteOrder(placeholder.id) // this record is already on the list
+      else
+        await updateOrder(placeholder.id, {
+          discogs_release_id: record.discogs_release_id,
+          title: record.title,
+          artist: record.artist,
+          cover_url: record.cover_url,
+          thumb_url: record.thumb_url,
+        })
+      deletePhoto(placeholder.cover_url)
+      setPendingPlaceholder(null)
+      clearSearch()
+      navigate('/')
+    } catch (e) {
+      alert('Speichern fehlgeschlagen: ' + e.message + '\n\nFalls eine Spalte fehlt: Das SQL-Update in Supabase muss noch ausgeführt werden.')
+      setBusy(false)
+    }
+  }
+
   const removeOrder = async () => {
     await deleteOrder(order.id)
     setOrdering(false)
@@ -95,6 +122,15 @@ export default function ReleaseDetail() {
           Schon {owned.length}× in deiner Sammlung ·{' '}
           <button className="link-btn" onClick={() => navigate(`/sammlung/${owned[0].id}`)}>ansehen</button>
         </p>
+      )}
+      {placeholder && (
+        <div className="pending-note">
+          <p>
+            Platzhalter <strong>„{placeholder.title}“</strong>: Ist die Platte schon da, füg sie einfach zur Sammlung hinzu, der Platzhalter
+            verschwindet dann. Ist sie noch unterwegs, ersetz den Platzhalter durch diese Platte.
+          </p>
+          <button className="btn ghost block" disabled={busy} onClick={replacePlaceholder}>Platzhalter durch diese Platte ersetzen</button>
+        </div>
       )}
       <button className="btn primary block" onClick={() => setAdding(true)}>
         {owned.length ? 'Weiteres Exemplar hinzufügen' : 'Zur Sammlung hinzufügen'}
