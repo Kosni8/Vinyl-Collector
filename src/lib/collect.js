@@ -1,9 +1,10 @@
 import { useCallback } from 'react'
 import { useData, SHELF_SLOTS, PRICE_FIELDS } from './store.jsx'
 import { fromRelease, addToDiscogsCollection } from './discogs.js'
-import { uploadPhoto } from './supabase.js'
+import { uploadPhoto, deletePhoto } from './supabase.js'
 import { coverColor } from './color.js'
 import { unwant } from './wantlist.js'
+import { getPendingPlaceholder, setPendingPlaceholder } from './orders.js'
 
 /**
  * Adds a Discogs release (as returned by getRelease) to the collection with the
@@ -48,8 +49,14 @@ export function useAddToCollection() {
       // Now owned: take it off the wantlist and off the ordered list.
       // always try: the list shown may be outdated, and Discogs answers 404 if it was not wanted
       await unwant(record.discogs_release_id).catch((e) => console.warn('Wantlist', e))
-      const order = orders.find((o) => o.discogs_release_id === record.discogs_release_id)
-      if (order) await deleteOrder(order.id).catch((e) => console.warn('Bestellt', e))
+      // A placeholder being looked for ("Ist da") is done now as well.
+      const pending = getPendingPlaceholder()
+      const done = orders.filter((o) => o.discogs_release_id === record.discogs_release_id || o.id === pending?.id)
+      for (const o of done) {
+        await deleteOrder(o.id).catch((e) => console.warn('Bestellt', e))
+        if (o.discogs_release_id == null) deletePhoto(o.cover_url)
+      }
+      if (pending) setPendingPlaceholder(null)
 
       return { item, discogsOk: !!discogsCopy }
     },

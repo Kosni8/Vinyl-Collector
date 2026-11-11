@@ -137,3 +137,5 @@ alter table public.orders enable row level security;
 drop policy if exists "orders_rw" on public.orders;
 create policy "orders_rw" on public.orders
   for all to authenticated using (true) with check (true);
+-- placeholders: ordered records that are not on Discogs yet have no release id
+alter table public.orders alter column discogs_release_id drop not null;

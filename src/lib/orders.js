@@ -39,3 +39,26 @@ export const sortOrders = (orders) =>
     if (b.date) return 1
     return a.created_at < b.created_at ? -1 : 1
   })
+
+/** A placeholder is an ordered record that is not on Discogs yet. */
+export const isPlaceholder = (order) => order.discogs_release_id == null
+
+// The placeholder being looked for in the search ("Ist da" or "Auf Discogs suchen").
+// Kept in sessionStorage so it survives a reload of the app.
+const KEY = 'pending-placeholder'
+export function getPendingPlaceholder() {
+  try {
+    return JSON.parse(sessionStorage.getItem(KEY)) ?? null
+  } catch {
+    return null
+  }
+}
+export function setPendingPlaceholder(order) {
+  try {
+    if (order) sessionStorage.setItem(KEY, JSON.stringify({ id: order.id, title: order.title, artist: order.artist }))
+    else sessionStorage.removeItem(KEY)
+  } catch {
+    /* private mode: works until the page is closed */
+  }
+  window.dispatchEvent(new Event('pending-placeholder'))
+}
