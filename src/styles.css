@@ -127,8 +127,8 @@ textarea.text-input { resize: vertical; }
 
 .shelf {
   display: flex; gap: 8px; padding: 16px; scrollbar-width: none;
-  /* only sideways: no up/down wobble of the spines, no bounce into the page */
-  overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain; touch-action: pan-x;
+  /* the shelf itself only scrolls sideways (no up/down wobble); up/down swipes scroll the page */
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; touch-action: pan-x pan-y;
 }
 .shelf::-webkit-scrollbar { display: none; }
 .shelf-front {
