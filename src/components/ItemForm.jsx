@@ -11,9 +11,21 @@ import {
   MAX_DISC_COLORS,
   colorsName,
   discsOf,
+  patternList,
 } from '../lib/format.js'
 import { VinylDot } from './VinylDot.jsx'
 import { CameraIcon } from './Icons.jsx'
+
+/**
+ * Several patterns can be combined (e.g. Translucent + Splatter). "Einfarbig" and
+ * "Picture Disc" stand alone; removing the last pattern goes back to "Einfarbig".
+ */
+function togglePattern(value, id) {
+  const cur = patternList(value)
+  if (id === 'solid' || id === 'picture') return id
+  const next = cur.includes(id) ? cur.filter((p) => p !== id) : [...cur.filter((p) => p !== 'solid' && p !== 'picture'), id]
+  return next.length ? patternList(next.join(',')).join(',') : 'solid'
+}
 
 const SIGNED_ITEMS = ['Art-Card', 'Vinyl Sized', 'Poster', 'Cover']
 
@@ -79,10 +91,10 @@ function DiscEditor({ disc, onChange, cover }) {
         placeholder="Name der Farbe, z. B. Ocean Blue"
       />
 
-      <label className="field-label">Muster</label>
+      <label className="field-label">Muster <span className="field-hint">mehrere möglich</span></label>
       <div className="chips">
         {VINYL_PATTERNS.map((p) => (
-          <button type="button" key={p.id} className={'chip' + (disc.pattern === p.id ? ' on' : '')} onClick={() => onChange({ ...disc, pattern: p.id })}>
+          <button type="button" key={p.id} className={'chip' + (patternList(disc.pattern).includes(p.id) ? ' on' : '')} onClick={() => onChange({ ...disc, pattern: togglePattern(disc.pattern, p.id) })}>
             <VinylDot color={disc.colors} pattern={p.id} cover={cover} size={16} /> {p.name}
           </button>
         ))}

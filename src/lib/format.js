@@ -33,13 +33,27 @@ export const VINYL_PATTERNS = [
   { id: 'translucent', name: 'Translucent' },
   { id: 'marbled', name: 'Marmoriert' },
   { id: 'splatter', name: 'Splatter' },
+  { id: 'glitter', name: 'Glitzer' },
   { id: 'split', name: 'Split' },
   { id: 'liquid', name: 'Liquid Filled' },
   { id: 'filled', name: 'Filled (anderes)' },
   { id: 'picture', name: 'Picture Disc' },
 ]
 
-export const patternName = (id) => VINYL_PATTERNS.find((p) => p.id === id)?.name ?? ''
+/**
+ * A record can have several patterns, stored comma separated ("translucent,splatter").
+ * Always in list order: the first one is the base, the others are drawn on top.
+ */
+export const patternList = (value) => {
+  const ids = (value || 'solid').split(',').filter(Boolean)
+  const order = (id) => {
+    const i = VINYL_PATTERNS.findIndex((p) => p.id === id)
+    return i < 0 ? 99 : i
+  }
+  return [...new Set(ids)].sort((a, b) => order(a) - order(b))
+}
+export const patternName = (value) =>
+  patternList(value).map((id) => VINYL_PATTERNS.find((p) => p.id === id)?.name ?? id).join(' + ')
 
 export const SIZES = ['12"', '10"', '7"', '4"']
 
@@ -163,10 +177,10 @@ export function colorGroupsOfItem(item) {
       if (c.toLowerCase() === '#d9e4e8') groups.add('clear')
       else groups.add(colorGroupOf(c))
     }
-    if (['translucent', 'liquid'].includes(d.pattern) || /transparent|clear|durchsichtig|klar/i.test(d.name ?? '')) groups.add('clear')
+    if (patternList(d.pattern).some((p) => p === 'translucent' || p === 'liquid') || /transparent|clear|durchsichtig|klar/i.test(d.name ?? '')) groups.add('clear')
   }
   return groups
 }
 
 /** All patterns of an item (every record). */
-export const patternsOfItem = (item) => new Set(discsOf(item).map((d) => d.pattern || 'solid'))
+export const patternsOfItem = (item) => new Set(discsOf(item).flatMap((d) => patternList(d.pattern)))

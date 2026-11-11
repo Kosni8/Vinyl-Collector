@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { patternName, discsOf } from '../lib/format.js'
+import { patternName, patternList, discsOf } from '../lib/format.js'
 
 // ---------------------------------------------------------------------------
 // Records are drawn as SVG (viewBox 0 0 100 100, centre 50/50, radius 50), so the
@@ -78,10 +78,41 @@ function streakPath(rand) {
   return `M${f(hx + nx)} ${f(hy + ny)}A${f(w)} ${f(w)} 0 0 1 ${f(hx - nx)} ${f(hy - ny)}L${f(tx)} ${f(ty)}Z`
 }
 
-function PatternFill({ uid, colors, pattern, cover, seedText }) {
+/** Four-pointed sparkle star. */
+function starPath(x, y, r) {
+  const f = (v) => v.toFixed(2)
+  const k = r * 0.22
+  return `M${f(x)} ${f(y - r)}Q${f(x + k)} ${f(y - k)} ${f(x + r)} ${f(y)}Q${f(x + k)} ${f(y + k)} ${f(x)} ${f(y + r)}Q${f(x - k)} ${f(y + k)} ${f(x - r)} ${f(y)}Q${f(x - k)} ${f(y - k)} ${f(x)} ${f(y - r)}Z`
+}
+
+/**
+ * One pattern. `overlay`: drawn on top of another pattern, so only the marks are drawn
+ * (no background); patterns that are only a background then draw nothing.
+ */
+function PatternFill({ uid, colors, pattern, cover, seedText, overlay = false }) {
   const [c0 = '#1a1a1a', c1, c2] = colors
   const rand = rng(seedText)
+  if (overlay && ['solid', 'split', 'picture'].includes(pattern)) return null
+  const base = (fill, props) => (overlay ? null : <rect width="100" height="100" fill={fill} {...props} />)
   switch (pattern) {
+    case 'glitter': { // fine sparkles all over the record
+      const sparkle = colors.length > 1 ? colors.slice(1) : [luminance(c0) > 0.6 ? '#b8912a' : '#fff6d8']
+      const dots = []
+      for (let i = 0; i < 160; i++) {
+        const [x, y] = polar(17 + Math.sqrt(rand()) * 33, rand() * Math.PI * 2)
+        dots.push(<circle key={i} cx={x} cy={y} r={0.2 + rand() * rand() * 0.9} fill={sparkle[i % sparkle.length]} opacity={0.45 + rand() * 0.55} />)
+      }
+      for (let i = 0; i < 16; i++) {
+        const [x, y] = polar(20 + rand() * 28, rand() * Math.PI * 2)
+        dots.push(<path key={`s${i}`} d={starPath(x, y, 1.2 + rand() * 1.8)} fill={sparkle[i % sparkle.length]} opacity={0.75 + rand() * 0.25} />)
+      }
+      return (
+        <>
+          {base(c0)}
+          {dots}
+        </>
+      )
+    }
     case 'picture':
       return cover ? (
         <image href={cover} x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" />
@@ -89,6 +120,7 @@ function PatternFill({ uid, colors, pattern, cover, seedText }) {
         <rect width="100" height="100" fill={c0} />
       )
     case 'translucent':
+      if (overlay) return <circle cx="36" cy="32" r="30" fill="#ffffff" opacity="0.18" />
       return (
         <>
           {colors.length > 1 ? (
@@ -122,7 +154,7 @@ function PatternFill({ uid, colors, pattern, cover, seedText }) {
           <filter id={`${uid}sh`} x="-10" y="-10" width="120" height="120" filterUnits="userSpaceOnUse">
             <feGaussianBlur stdDeviation="0.6" />
           </filter>
-          <rect width="100" height="100" fill={c0} />
+          {base(c0)}
           <g filter={`url(#${uid}sm)`}>{soft}</g>
           <g filter={`url(#${uid}sh)`}>{sharp}</g>
         </>
@@ -140,7 +172,7 @@ function PatternFill({ uid, colors, pattern, cover, seedText }) {
       }
       return (
         <>
-          <rect width="100" height="100" fill={c0} />
+          {base(c0)}
           {marks}
         </>
       )
@@ -152,7 +184,7 @@ function PatternFill({ uid, colors, pattern, cover, seedText }) {
     case 'filled': // one colour inside another
       return (
         <>
-          <rect width="100" height="100" fill={c0} />
+          {base(c0)}
           <path d={blobPath(31, 3.5, rand)} fill={c1 ?? contrast(c0)} />
           {c2 && <path d={blobPath(22, 2.5, rand)} fill={c2} />}
         </>
@@ -166,7 +198,7 @@ function PatternFill({ uid, colors, pattern, cover, seedText }) {
       }
       return (
         <>
-          <rect width="100" height="100" fill={c1 ? c0 : '#d9e4e8'} opacity="0.6" />
+          {base(c1 ? c0 : '#d9e4e8', { opacity: 0.6 })}
           <mask id={`${uid}lq`}>
             <path d={blobPath(39, 2.2, rand)} fill="#fff" />
             <path d={blobPath(21, 1.5, rand)} fill="#000" />
@@ -219,7 +251,18 @@ export function VinylArt({ colors = '#1a1a1a', pattern = 'solid', cover, size, b
       </defs>
       <g mask={`url(#${uid}h)`}>
         <g clipPath={`url(#${uid}c)`}>
-          <PatternFill uid={uid} colors={list} pattern={pattern} cover={cover} seedText={list.join() + pattern} />
+          {patternList(pattern).map((p, i, all) => (
+            <PatternFill
+              key={p}
+              uid={uid + i}
+              // a clear base under other patterns keeps to the first colour; the others are for the marks on top
+              colors={i === 0 && all.length > 1 && p === 'translucent' ? list.slice(0, 1) : list}
+              pattern={p}
+              cover={cover}
+              seedText={list.join() + p}
+              overlay={i > 0}
+            />
+          ))}
           {big && (
             <>
               {Array.from({ length: 24 }, (_, i) => (
