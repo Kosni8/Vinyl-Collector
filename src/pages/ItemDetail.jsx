@@ -10,6 +10,14 @@ import Loader from '../components/Loader.jsx'
 import ItemForm from '../components/ItemForm.jsx'
 import { VinylColorLabel } from '../components/VinylDot.jsx'
 
+/** Shape of the records: one name, or per record when they differ ("Platte 1: Stern · Platte 2: Rund"). */
+function shapeText(item) {
+  const names = discsOf(item).map((d) => (d.shape ? shapeName(d.shape) : 'Rund'))
+  if (names.every((n) => n === 'Rund')) return null
+  if (names.every((n) => n === names[0])) return names[0]
+  return names.map((n, i) => `Platte ${i + 1}: ${n}`).join(' · ')
+}
+
 const STALE_MS = 12 * 60 * 60 * 1000
 
 export default function ItemDetail() {
@@ -112,7 +120,7 @@ export default function ItemDetail() {
           {(item.size || item.disc_count) && (
             <div><dt>Format</dt><dd>{[item.size, `${item.disc_count ?? discsOf(item).length}× Vinyl`].filter(Boolean).join(' · ')}</dd></div>
           )}
-          {item.shape && <div><dt>Form</dt><dd>{shapeName(item.shape)}</dd></div>}
+          {shapeText(item) && <div><dt>Form</dt><dd>{shapeText(item)}</dd></div>}
           {item.condition && <div><dt>Zustand</dt><dd>{conditionName(item.condition)} ({item.condition})</dd></div>}
         </dl>
         {item.signed && item.signature_url && (

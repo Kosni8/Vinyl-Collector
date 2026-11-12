@@ -5,8 +5,6 @@ import {
   SIZES,
   SHAPES,
   isOwnShape,
-  shapeName,
-  shapeId,
   CONDITIONS,
   MAX_DISCS,
   MAX_DISC_COLORS,
@@ -62,6 +60,7 @@ function PhotoField({ preview, label, removeLabel, onFile, onRemove, small = fal
 function DiscEditor({ disc, onChange, cover }) {
   // Which colour slot the palette below fills: 0 = base colour, 1/2 = extra colours.
   const [slot, setSlot] = useState(0)
+  const [ownShape, setOwnShape] = useState(isOwnShape(disc.shape))
   const setColors = (colors) => onChange({ ...disc, colors, name: colorsName(colors) })
   const setSlotColor = (hex) => {
     const next = [...disc.colors]
@@ -128,6 +127,37 @@ function DiscEditor({ disc, onChange, cover }) {
           </button>
         ))}
       </div>
+
+      <label className="field-label">Form</label>
+      <div className="chips">
+        <button type="button" className={'chip' + (!disc.shape && !ownShape ? ' on' : '')} onClick={() => { setOwnShape(false); onChange({ ...disc, shape: null }) }}>
+          <VinylDot color={disc.colors} pattern={disc.pattern} cover={cover} size={18} /> Rund
+        </button>
+        {SHAPES.map((sh) => (
+          <button
+            type="button"
+            key={sh.id}
+            className={'chip' + (!ownShape && disc.shape === sh.id ? ' on' : '')}
+            onClick={() => { setOwnShape(false); onChange({ ...disc, shape: sh.id }) }}
+          >
+            <VinylDot color={disc.colors} pattern={disc.pattern} cover={cover} size={18} shape={sh.id} /> {sh.name}
+          </button>
+        ))}
+        <button type="button" className={'chip' + (ownShape ? ' on' : '')} onClick={() => { setOwnShape(true); onChange({ ...disc, shape: isOwnShape(disc.shape) ? disc.shape : '' }) }}>
+          Eigenes
+        </button>
+      </div>
+      {!ownShape && disc.shape === 'moth' && (
+        <p className="muted small hint">Die Motte sieht immer aus wie das Original, die Farbe oben wird dafür nicht verwendet.</p>
+      )}
+      {ownShape && (
+        <input
+          className="text-input own-shape"
+          value={disc.shape ?? ''}
+          onChange={(e) => onChange({ ...disc, shape: e.target.value })}
+          placeholder="z.B. Blume oder Herzchen"
+        />
+      )}
     </>
   )
 }
@@ -146,11 +176,6 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
     return Array.from({ length: Math.max(n, d.length) }, (_, i) => d[i] ?? d[d.length - 1])
   })
   const [active, setActive] = useState(0)
-  // a typed "Wolke" or "Motte" becomes the fixed shape, so it is drawn as one
-  const initialShape = shapeId(initial.shape) ?? initial.shape ?? null
-  const [shape, setShape] = useState(initialShape)
-  const [ownShape, setOwnShape] = useState(isOwnShape(initialShape))
-  const [ownShapeText, setOwnShapeText] = useState(isOwnShape(initialShape) ? shapeName(initialShape) : '')
   const [condition, setCondition] = useState(initial.condition ?? null)
   const [comment, setComment] = useState(initial.comment ?? '')
   const [signed, setSigned] = useState(initial.signed ?? false)
@@ -175,7 +200,7 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
       className="item-form"
       onSubmit={(e) => {
         e.preventDefault()
-        const used = discs.slice(0, count).map((d) => ({ ...d, name: d.name.trim() || colorsName(d.colors) }))
+        const used = discs.slice(0, count).map((d) => ({ ...d, name: d.name.trim() || colorsName(d.colors), shape: d.shape?.trim() || null }))
         onSubmit({
           size,
           disc_count: count,
@@ -184,7 +209,8 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
           vinyl_color: used[0].colors[0],
           vinyl_color_name: used[0].name,
           vinyl_pattern: used[0].pattern,
-          shape: ownShape ? ownShapeText.trim() || null : shape,
+          // shape is per record now (in discs); the old field keeps the first shaped one
+          shape: used.find((d) => d.shape)?.shape ?? null,
           condition,
           comment: comment.trim() || null,
           signed,
@@ -216,13 +242,13 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
         ))}
       </div>
 
-      <label className="field-label">{count > 1 ? 'Farben der Platten' : 'Farbe der Platte'}</label>
+      <label className="field-label">{count > 1 ? 'Farbe und Form der Platten' : 'Farbe und Form der Platte'}</label>
       {count > 1 && (
         <>
           <div className="segmented disc-tabs">
             {Array.from({ length: count }, (_, i) => (
               <button type="button" key={i} className={active === i ? 'on' : ''} onClick={() => setActive(i)}>
-                <VinylDot color={discs[i].colors} pattern={discs[i].pattern} cover={cover} size={16} shape={ownShape ? ownShapeText : shape} /> Platte {i + 1}
+                <VinylDot color={discs[i].colors} pattern={discs[i].pattern} cover={cover} size={16} shape={discs[i].shape} /> Platte {i + 1}
               </button>
             ))}
           </div>
@@ -234,37 +260,6 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
         </>
       )}
       <DiscEditor key={active} disc={discs[active]} onChange={(d) => updateDisc(active, d)} cover={cover} />
-
-      <label className="field-label">Form</label>
-      <div className="chips">
-        <button type="button" className={'chip' + (!shape && !ownShape ? ' on' : '')} onClick={() => { setShape(null); setOwnShape(false) }}>
-          Rund
-        </button>
-        {SHAPES.map((sh) => (
-          <button
-            type="button"
-            key={sh.id}
-            className={'chip' + (!ownShape && shape === sh.id ? ' on' : '')}
-            onClick={() => { setShape(sh.id); setOwnShape(false) }}
-          >
-            <VinylDot color={discs[active].colors} pattern={discs[active].pattern} cover={cover} size={18} shape={sh.id} /> {sh.name}
-          </button>
-        ))}
-        <button type="button" className={'chip' + (ownShape ? ' on' : '')} onClick={() => setOwnShape(true)}>
-          Eigenes
-        </button>
-      </div>
-      {!ownShape && shape === 'moth' && (
-        <p className="muted small hint">Die Motte sieht immer aus wie das Original, die Farbe oben wird dafür nicht verwendet.</p>
-      )}
-      {ownShape && (
-        <input
-          className="text-input own-shape"
-          value={ownShapeText}
-          onChange={(e) => setOwnShapeText(e.target.value)}
-          placeholder="z.B. Blume oder Herzchen"
-        />
-      )}
 
       <label className="field-label">Zustand</label>
       <div className="chips">

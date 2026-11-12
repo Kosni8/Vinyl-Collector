@@ -375,9 +375,9 @@ export function VinylDisc({ item, disc = 0 }) {
   const all = discsOf(item)
   const d = all[disc] ?? all[0]
   return (
-    <span className={'vinyl-disc' + (isShaped(item.shape) ? ' shaped' : '')}>
+    <span className={'vinyl-disc' + (isShaped(d.shape) ? ' shaped' : '')}>
       <span className="vinyl-rot">
-        <VinylArt big colors={d.colors} pattern={d.pattern} cover={item.cover_url} label={item.cover_url} shape={item.shape} />
+        <VinylArt big colors={d.colors} pattern={d.pattern} cover={item.cover_url} label={item.cover_url} shape={d.shape} />
       </span>
     </span>
   )
@@ -387,13 +387,13 @@ export function VinylColorLabel({ item, showSigned = true }) {
   const discs = discsOf(item)
   // pattern always shown, also "Einfarbig", so every record reads the same way
   // the moth record always looks the same (photo), so its colours are not listed
-  const name = (d) => (shapeId(item.shape) === 'moth' ? 'Motten-Vinyl' : `${d.name} · ${patternName(d.pattern || 'solid')}`)
+  const name = (d) => (shapeId(d.shape) === 'moth' ? 'Motten-Vinyl' : `${d.name} · ${patternName(d.pattern || 'solid')}`)
   const allSame = discs.every((d) => name(d) === name(discs[0]))
   return (
     <span className="vinyl-label">
       <span className="vinyl-dots">
         {discs.map((d, i) => (
-          <VinylDot key={i} color={d.colors} pattern={d.pattern} cover={item.thumb_url} shape={item.shape} />
+          <VinylDot key={i} color={d.colors} pattern={d.pattern} cover={item.thumb_url} shape={d.shape} />
         ))}
       </span>
       <span className="vinyl-label-text">{allSame ? name(discs[0]) : discs.map(name).join(' + ')}</span>
