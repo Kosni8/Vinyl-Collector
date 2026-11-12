@@ -111,7 +111,7 @@ function starShape() {
   for (let i = 0; i < 10; i++) {
     const r = i % 2 ? 23 : 50
     const a = (i / 10) * Math.PI * 2 - Math.PI / 2
-    pts.push([C + r * Math.cos(a), C + 3 + r * Math.sin(a)])
+    pts.push([C + r * Math.cos(a), C + r * Math.sin(a)]) // centred on the hole, like a round record
   }
   return 'M' + pts.map((p) => p.map(f2).join(' ')).join('L') + 'Z'
 }
@@ -122,7 +122,7 @@ export const SHAPE_PATHS = {
     [[2, 19], [-1, 38], [8, 52]],
     [[18, 67], [36, 79], [50, 93]],
   ]),
-  cloud: 'M24 78A15 15 0 0 1 12 52A16 16 0 0 1 30 32A20 20 0 0 1 64 24A17 17 0 0 1 86 44A17 17 0 0 1 80 78Z',
+  cloud: 'M20 80A15 15 0 0 1 8 54A16 16 0 0 1 26 34A20 20 0 0 1 60 26A17 17 0 0 1 82 46A17 17 0 0 1 76 80Z', // centred on the hole
   star: starShape(),
 }
 /** Centre hole and label radius per shape (shapes are narrower than a round record). */
