@@ -99,13 +99,19 @@ export const colorsName = (colors) =>
  * vinyl_color / vinyl_color_name / vinyl_pattern; they count as one record.
  */
 export function discsOf(item = {}) {
-  if (Array.isArray(item.discs) && item.discs.length) return item.discs
+  // Shape is per record; older entries only have one shape for the whole album.
+  // A typed "Wolke" or "Motte" becomes the fixed shape, so it is drawn as one.
+  const withShape = (d) => {
+    const raw = 'shape' in d ? d.shape : item.shape ?? null
+    return { ...d, shape: shapeId(raw) ?? raw ?? null }
+  }
+  if (Array.isArray(item.discs) && item.discs.length) return item.discs.map(withShape)
   return [
-    {
+    withShape({
       colors: [item.vinyl_color ?? '#1a1a1a'],
       name: item.vinyl_color_name ?? 'Schwarz',
       pattern: item.vinyl_pattern ?? 'solid',
-    },
+    }),
   ]
 }
 

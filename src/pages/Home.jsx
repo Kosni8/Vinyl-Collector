@@ -71,7 +71,7 @@ function DiscChoice({ item, value, onChange }) {
     <div className="chips">
       {distinctDiscs(item).map((d, i) => (
         <button type="button" key={i} className={'chip' + ((value ?? 0) === i ? ' on' : '')} onClick={() => onChange(i)}>
-          <VinylDot color={d.colors} pattern={d.pattern} cover={item.thumb_url} size={20} shape={item.shape} /> Platte {i + 1}
+          <VinylDot color={d.colors} pattern={d.pattern} cover={item.thumb_url} size={20} shape={d.shape} /> Platte {i + 1}
           {d.name ? <span className="chip-sub">{d.name}</span> : null}
         </button>
       ))}
