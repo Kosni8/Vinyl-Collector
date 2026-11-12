@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { patternName, patternList, discsOf } from '../lib/format.js'
+import { patternName, patternList, discsOf, shapeId } from '../lib/format.js'
 
 // ---------------------------------------------------------------------------
 // Records are drawn as SVG (viewBox 0 0 100 100, centre 50/50, radius 50), so the
@@ -84,6 +84,63 @@ function starPath(x, y, r) {
   const k = r * 0.22
   return `M${f(x)} ${f(y - r)}Q${f(x + k)} ${f(y - k)} ${f(x + r)} ${f(y)}Q${f(x + k)} ${f(y + k)} ${f(x)} ${f(y + r)}Q${f(x - k)} ${f(y + k)} ${f(x - r)} ${f(y)}Q${f(x - k)} ${f(y - k)} ${f(x)} ${f(y - r)}Z`
 }
+
+
+// ---------------------------------------------------------------------------
+// Shaped records (heart, cloud, star, moth): one closed path each in the same
+// 0..100 box, with the centre hole at 50/50 inside the shape.
+// ---------------------------------------------------------------------------
+
+const f2 = (v) => +v.toFixed(2)
+
+/** Mirrors a left half (cubic segments from the top of the axis down to its bottom) to a closed path. */
+function mirrored(start, segs) {
+  const mx = ([x, y]) => [100 - x, y]
+  const pts = (list) => list.map((p) => p.map(f2).join(' ')).join(' ')
+  let d = `M${pts([start])}`
+  for (const s of segs) d += `C${pts(s)}`
+  // back up the right side: reverse each segment, mirror it
+  const ends = [start, ...segs.map((s) => s[2])]
+  for (let i = segs.length - 1; i >= 0; i--) d += `C${pts([mx(segs[i][1]), mx(segs[i][0]), mx(ends[i])])}`
+  return d + 'Z'
+}
+
+function starShape() {
+  const pts = []
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 ? 23 : 50
+    const a = (i / 10) * Math.PI * 2 - Math.PI / 2
+    pts.push([C + r * Math.cos(a), C + 3 + r * Math.sin(a)])
+  }
+  return 'M' + pts.map((p) => p.map(f2).join(' ')).join('L') + 'Z'
+}
+
+export const SHAPE_PATHS = {
+  heart: mirrored([50, 26], [
+    [[44, 12], [26, 4], [13, 12]],
+    [[2, 19], [-1, 38], [8, 52]],
+    [[18, 67], [36, 79], [50, 93]],
+  ]),
+  cloud: 'M24 78A15 15 0 0 1 12 52A16 16 0 0 1 30 32A20 20 0 0 1 64 24A17 17 0 0 1 86 44A17 17 0 0 1 80 78Z',
+  star: starShape(),
+  // broad forewings, rounded hind wings and a plump body (same winding, so they join)
+  moth:
+    mirrored([50, 30], [
+      [[40, 20], [16, 8], [4, 13]],
+      [[0, 26], [6, 44], [16, 52]],
+      [[24, 57], [36, 55], [44, 54]],
+      [[30, 60], [14, 70], [19, 82]],
+      [[24, 93], [40, 90], [46, 78]],
+      [[47, 83], [48, 87], [50, 89]],
+    ]) + 'M50 22A7.5 34 0 0 0 50 90A7.5 34 0 0 0 50 22Z',
+}
+/** Feelers drawn on top of the moth (not part of the record itself). */
+const SHAPE_DECOR = {
+  moth: 'M47.5 24C45 14 40 8 33 5M52.5 24C55 14 60 8 67 5',
+}
+/** Centre hole and label radius per shape (shapes are narrower than a round record). */
+const SHAPE_HOLE = { heart: 8, cloud: 9, star: 8, moth: 5 }
+const SHAPE_LABEL = { moth: 10, star: 16 }
 
 /**
  * One pattern. `overlay`: drawn on top of another pattern, so only the marks are drawn
@@ -236,13 +293,16 @@ function PatternFill({ uid, colors, pattern, cover, seedText, overlay = false })
  * A record in its colours and pattern. Small (dot) version has a plain hole;
  * `big` adds grooves, sheen and the cover as centre label.
  */
-export function VinylArt({ colors = '#1a1a1a', pattern = 'solid', cover, size, big = false, label }) {
+export function VinylArt({ colors = '#1a1a1a', pattern = 'solid', cover, size, big = false, label, shape }) {
   const uid = 'v' + useId().replace(/[^a-zA-Z0-9]/g, '')
   const list = (Array.isArray(colors) ? colors : [colors]).filter(Boolean)
-  const holeR = big ? 2.2 : 15
+  const sid = shapeId(shape)
+  const outline = SHAPE_PATHS[sid] // undefined = round
+  const holeR = big ? 2.2 : outline ? SHAPE_HOLE[sid] : 15
+  const labelR = outline ? SHAPE_LABEL[sid] ?? 18 : 18
   return (
     <svg
-      className={big ? 'vinyl-art big' : 'vinyl-art'}
+      className={'vinyl-art' + (big ? ' big' : '') + (outline ? ' shaped' : '')}
       viewBox="0 0 100 100"
       width={size}
       height={size}
@@ -250,7 +310,7 @@ export function VinylArt({ colors = '#1a1a1a', pattern = 'solid', cover, size, b
     >
       <defs>
         <clipPath id={`${uid}c`}>
-          <circle cx={C} cy={C} r={C} />
+          {outline ? <path d={outline} /> : <circle cx={C} cy={C} r={C} />}
         </clipPath>
         <mask id={`${uid}h`}>
           <rect width="100" height="100" fill="#fff" />
@@ -258,7 +318,7 @@ export function VinylArt({ colors = '#1a1a1a', pattern = 'solid', cover, size, b
         </mask>
         {big && label && (
           <clipPath id={`${uid}l`}>
-            <circle cx={C} cy={C} r="18" />
+            <circle cx={C} cy={C} r={labelR} />
           </clipPath>
         )}
       </defs>
@@ -288,20 +348,27 @@ export function VinylArt({ colors = '#1a1a1a', pattern = 'solid', cover, size, b
         </g>
         {big && label && (
           <>
-            <image href={label} x="32" y="32" width="36" height="36" preserveAspectRatio="xMidYMid slice" clipPath={`url(#${uid}l)`} />
-            <circle cx={C} cy={C} r="18" fill="none" stroke="#000" strokeOpacity="0.25" strokeWidth="0.6" />
+            <image href={label} x={C - labelR} y={C - labelR} width={labelR * 2} height={labelR * 2} preserveAspectRatio="xMidYMid slice" clipPath={`url(#${uid}l)`} />
+            <circle cx={C} cy={C} r={labelR} fill="none" stroke="#000" strokeOpacity="0.25" strokeWidth="0.6" />
           </>
         )}
       </g>
-      <circle cx={C} cy={C} r={C - 0.5} fill="none" stroke="#000" strokeOpacity="0.18" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+      {SHAPE_DECOR[sid] && (
+        <path d={SHAPE_DECOR[sid]} fill="none" stroke={list[0]} strokeWidth={big ? 1.6 : 3} strokeLinecap="round" />
+      )}
+      {outline ? (
+        <path d={outline} fill="none" stroke="#000" strokeOpacity="0.22" strokeWidth="1" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      ) : (
+        <circle cx={C} cy={C} r={C - 0.5} fill="none" stroke="#000" strokeOpacity="0.18" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+      )}
       <circle cx={C} cy={C} r={holeR} fill="none" stroke="#000" strokeOpacity="0.15" strokeWidth="1" vectorEffect="non-scaling-stroke" />
     </svg>
   )
 }
 
 /** Small record disc showing the vinyl colour(s) and pattern. */
-export function VinylDot({ color = '#1a1a1a', pattern = 'solid', cover, size = 18 }) {
-  return <VinylArt colors={color} pattern={pattern} cover={cover} size={size} />
+export function VinylDot({ color = '#1a1a1a', pattern = 'solid', cover, size = 18, shape }) {
+  return <VinylArt colors={color} pattern={pattern} cover={cover} size={size} shape={shape} />
 }
 
 /** Large record with grooves, sheen and the cover as centre label. */
@@ -309,9 +376,9 @@ export function VinylDisc({ item, disc = 0 }) {
   const all = discsOf(item)
   const d = all[disc] ?? all[0]
   return (
-    <span className="vinyl-disc">
+    <span className={'vinyl-disc' + (SHAPE_PATHS[shapeId(item.shape)] ? ' shaped' : '')}>
       <span className="vinyl-rot">
-        <VinylArt big colors={d.colors} pattern={d.pattern} cover={item.cover_url} label={item.cover_url} />
+        <VinylArt big colors={d.colors} pattern={d.pattern} cover={item.cover_url} label={item.cover_url} shape={item.shape} />
       </span>
     </span>
   )
@@ -326,7 +393,7 @@ export function VinylColorLabel({ item, showSigned = true }) {
     <span className="vinyl-label">
       <span className="vinyl-dots">
         {discs.map((d, i) => (
-          <VinylDot key={i} color={d.colors} pattern={d.pattern} cover={item.thumb_url} />
+          <VinylDot key={i} color={d.colors} pattern={d.pattern} cover={item.thumb_url} shape={item.shape} />
         ))}
       </span>
       <span className="vinyl-label-text">{allSame ? name(discs[0]) : discs.map(name).join(' + ')}</span>

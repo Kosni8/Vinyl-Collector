@@ -6,6 +6,7 @@ import {
   SHAPES,
   isOwnShape,
   shapeName,
+  shapeId,
   CONDITIONS,
   MAX_DISCS,
   MAX_DISC_COLORS,
@@ -28,6 +29,34 @@ function togglePattern(value, id) {
 }
 
 const SIGNED_ITEMS = ['Art-Card', 'Vinyl Sized', 'Poster', 'Cover']
+
+/** Photo picker with preview and a remove link. */
+function PhotoField({ preview, label, removeLabel, onFile, onRemove, small = false }) {
+  return (
+    <div className={'photo-field' + (small ? ' small-photo' : '')}>
+      {preview ? (
+        <div className="photo-preview">
+          <img src={preview} alt="" />
+          <button type="button" className="link-btn" onClick={onRemove}>{removeLabel}</button>
+        </div>
+      ) : (
+        <label className="btn ghost block">
+          <CameraIcon width={18} height={18} /> {label}
+          <input
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) onFile(f)
+              e.target.value = ''
+            }}
+          />
+        </label>
+      )}
+    </div>
+  )
+}
 
 /** Colours (up to three), name and pattern of one record. */
 function DiscEditor({ disc, onChange, cover }) {
@@ -117,9 +146,11 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
     return Array.from({ length: Math.max(n, d.length) }, (_, i) => d[i] ?? d[d.length - 1])
   })
   const [active, setActive] = useState(0)
-  const [shape, setShape] = useState(initial.shape ?? null)
-  const [ownShape, setOwnShape] = useState(isOwnShape(initial.shape))
-  const [ownShapeText, setOwnShapeText] = useState(isOwnShape(initial.shape) ? shapeName(initial.shape) : '')
+  // a typed "Wolke" or "Motte" becomes the fixed shape, so it is drawn as one
+  const initialShape = shapeId(initial.shape) ?? initial.shape ?? null
+  const [shape, setShape] = useState(initialShape)
+  const [ownShape, setOwnShape] = useState(isOwnShape(initialShape))
+  const [ownShapeText, setOwnShapeText] = useState(isOwnShape(initialShape) ? shapeName(initialShape) : '')
   const [condition, setCondition] = useState(initial.condition ?? null)
   const [comment, setComment] = useState(initial.comment ?? '')
   const [signed, setSigned] = useState(initial.signed ?? false)
@@ -127,6 +158,8 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
   const [photo, setPhoto] = useState(null)
   const [preview, setPreview] = useState(initial.photo_url ?? null)
   const [removePhoto, setRemovePhoto] = useState(false)
+  const [signature, setSignature] = useState(null) // new photo of the signature
+  const [signaturePreview, setSignaturePreview] = useState(initial.signature_url ?? null)
 
   const changeCount = (n) => {
     setCount(n)
@@ -159,6 +192,9 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
           ...(signed || initial.signed_items?.length ? { signed_items: signed && signedItems.length ? signedItems : null } : {}),
           photoFile: photo,
           removePhoto,
+          // the signature photo only counts while "signed" is ticked
+          signatureFile: signed ? signature : null,
+          removeSignature: !!initial.signature_url && (!signed || !signaturePreview),
         })
       }}
     >
@@ -186,7 +222,7 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
           <div className="segmented disc-tabs">
             {Array.from({ length: count }, (_, i) => (
               <button type="button" key={i} className={active === i ? 'on' : ''} onClick={() => setActive(i)}>
-                <VinylDot color={discs[i].colors} pattern={discs[i].pattern} cover={cover} size={16} /> Platte {i + 1}
+                <VinylDot color={discs[i].colors} pattern={discs[i].pattern} cover={cover} size={16} shape={ownShape ? ownShapeText : shape} /> Platte {i + 1}
               </button>
             ))}
           </div>
@@ -211,7 +247,7 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
             className={'chip' + (!ownShape && shape === sh.id ? ' on' : '')}
             onClick={() => { setShape(sh.id); setOwnShape(false) }}
           >
-            {sh.name}
+            <VinylDot color={discs[active].colors} pattern={discs[active].pattern} cover={cover} size={18} shape={sh.id} /> {sh.name}
           </button>
         ))}
         <button type="button" className={'chip' + (ownShape ? ' on' : '')} onClick={() => setOwnShape(true)}>
@@ -223,7 +259,7 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
           className="text-input own-shape"
           value={ownShapeText}
           onChange={(e) => setOwnShapeText(e.target.value)}
-          placeholder="z.B. Wolke oder Blume"
+          placeholder="z.B. Blume oder Herzchen"
         />
       )}
 
@@ -243,40 +279,13 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
       </div>
 
       <label className="field-label">Foto (optional)</label>
-      <div className="photo-field">
-        {preview && !removePhoto ? (
-          <div className="photo-preview">
-            <img src={preview} alt="" />
-            <button
-              type="button"
-              className="link-btn"
-              onClick={() => {
-                setPhoto(null)
-                setPreview(null)
-                setRemovePhoto(true)
-              }}
-            >
-              Foto entfernen
-            </button>
-          </div>
-        ) : (
-          <label className="btn ghost block">
-            <CameraIcon width={18} height={18} /> Foto aufnehmen oder wählen
-            <input
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (!f) return
-                setPhoto(f)
-                setPreview(URL.createObjectURL(f))
-                setRemovePhoto(false)
-              }}
-            />
-          </label>
-        )}
-      </div>
+      <PhotoField
+        preview={removePhoto ? null : preview}
+        label="Foto aufnehmen oder wählen"
+        removeLabel="Foto entfernen"
+        onFile={(f) => { setPhoto(f); setPreview(URL.createObjectURL(f)); setRemovePhoto(false) }}
+        onRemove={() => { setPhoto(null); setPreview(null); setRemovePhoto(true) }}
+      />
 
       <label className="field-label">Kommentar (optional)</label>
       <textarea className="text-input" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="z. B. Gekauft im Plattenladen in Köln" />
@@ -300,6 +309,15 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
               </button>
             ))}
           </div>
+          <label className="field-label">Foto der Signatur (optional)</label>
+          <PhotoField
+            small
+            preview={signaturePreview}
+            label="Signatur fotografieren oder wählen"
+            removeLabel="Signatur-Foto entfernen"
+            onFile={(f) => { setSignature(f); setSignaturePreview(URL.createObjectURL(f)) }}
+            onRemove={() => { setSignature(null); setSignaturePreview(null) }}
+          />
         </>
       )}
 

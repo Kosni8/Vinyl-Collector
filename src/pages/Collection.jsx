@@ -3,6 +3,7 @@ import { useData } from '../lib/store.jsx'
 import RecordRow from '../components/RecordRow.jsx'
 import { SortIcon, FilterIcon, RefreshIcon } from '../components/Icons.jsx'
 import Sheet from '../components/Sheet.jsx'
+import Loader from '../components/Loader.jsx'
 import SearchField from '../components/SearchField.jsx'
 import { VinylDot } from '../components/VinylDot.jsx'
 import { money, VINYL_PATTERNS, SIZES, sizeOf, COLOR_GROUPS, colorGroupsOfItem, patternsOfItem } from '../lib/format.js'
@@ -98,7 +99,7 @@ export default function Collection() {
           </button>
         </div>
       </div>
-      {loading && <p className="muted center">Lädt …</p>}
+      {loading && <Loader />}
       {!loading && !items.length && <p className="muted center">Noch keine Platten. Über „Suche“ kannst du die erste hinzufügen.</p>}
       {activeFilters > 0 && list.length > 0 && (
         <p className="muted small">{list.length} von {items.length} Platten</p>

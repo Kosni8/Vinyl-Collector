@@ -60,10 +60,18 @@ export const SIZES = ['12"', '10"', '7"', '4"']
 // Fixed shapes; anything else in `shape` is the user's own text ("Eigenes").
 export const SHAPES = [
   { id: 'heart', name: 'Herz' },
+  { id: 'cloud', name: 'Wolke' },
   { id: 'star', name: 'Stern' },
+  { id: 'moth', name: 'Motte' },
 ]
 const LEGACY_SHAPES = { triangle: 'Dreieck', hexagon: 'Sechseck', square: 'Quadrat', other: 'Andere' }
 export const isOwnShape = (shape) => !!shape && !SHAPES.some((s) => s.id === shape)
+/** Fixed shape id for `shape`, also when it was typed as own text ("Wolke", "motte"); else null. */
+export const shapeId = (shape) => {
+  if (!shape) return null
+  const t = String(shape).trim().toLowerCase()
+  return SHAPES.find((s) => s.id === t || s.name.toLowerCase() === t)?.id ?? null
+}
 export const shapeName = (shape) => SHAPES.find((s) => s.id === shape)?.name ?? LEGACY_SHAPES[shape] ?? shape ?? ''
 
 // Goldmine grading as Discogs uses it; `discogs` is the key of the price suggestion.
