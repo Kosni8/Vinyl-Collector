@@ -155,7 +155,7 @@ function DiscEditor({ disc, onChange, cover }) {
           className="text-input own-shape"
           value={disc.shape ?? ''}
           onChange={(e) => onChange({ ...disc, shape: e.target.value })}
-          placeholder="z.B. Blume oder Herzchen"
+          placeholder="z.B. Blume oder Gitarre"
         />
       )}
     </>

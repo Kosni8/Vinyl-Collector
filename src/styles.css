@@ -98,7 +98,7 @@ textarea.text-input { resize: vertical; }
 .home { padding: 0; max-width: 640px; min-height: 100dvh; background: var(--home-bg, var(--bg)); color: var(--home-ink, var(--ink)); --home-muted: var(--muted); }
 .home.dark { --home-muted: rgba(255, 255, 255, 0.65); }
 /* 5:2, the same shape as the crop frame, so the picture looks exactly as cropped */
-.banner { position: relative; display: block; width: 100%; height: min(40vw, 256px); background: #d8cfc3; overflow: hidden; border-bottom: 3px solid var(--ink); }
+.banner { position: relative; display: block; width: 100%; height: min(32vw, 205px); background: #d8cfc3; overflow: hidden; border-bottom: 3px solid var(--ink); }
 .banner img { width: 100%; height: 100%; object-fit: cover; }
 .banner-empty { position: absolute; inset: 0; display: grid; place-items: center; color: #6c645b; font-weight: 600; padding-top: var(--safe-top);
   background: repeating-linear-gradient(135deg, #e6ddd1 0 12px, #ddd3c6 12px 24px); }
@@ -152,6 +152,8 @@ textarea.text-input { resize: vertical; }
 .vinyl-disc .vinyl-art { display: block; width: 100%; height: 100%; }
 /* shaped records (heart, cloud, star, moth): shadow follows the outline and turns with it */
 .vinyl-disc.shaped { border-radius: 0; box-shadow: none; }
+/* round "turntable" behind shaped records, like the halo around a round one (does not turn) */
+.vinyl-disc.shaped::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; background: rgba(0, 0, 0, 0.08); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); pointer-events: none; }
 .vinyl-disc.shaped .vinyl-rot { border-radius: 0; }
 .vinyl-disc.shaped .vinyl-art { filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.3)); }
 .shelf-spines { display: flex; gap: 5px; }
