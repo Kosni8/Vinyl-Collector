@@ -121,6 +121,9 @@ export default function ItemDetail() {
             <div><dt>Format</dt><dd>{[item.size, `${item.disc_count ?? discsOf(item).length}× Vinyl`].filter(Boolean).join(' · ')}</dd></div>
           )}
           {shapeText(item) && <div><dt>Form</dt><dd>{shapeText(item)}</dd></div>}
+          {item.number_no != null && (
+            <div><dt>Nummeriert</dt><dd>Nummer {item.number_no}{item.number_total != null ? ` von ${item.number_total}` : ''}</dd></div>
+          )}
           {item.condition && <div><dt>Zustand</dt><dd>{conditionName(item.condition)} ({item.condition})</dd></div>}
         </dl>
         {item.signed && item.signature_url && (

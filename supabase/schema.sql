@@ -140,3 +140,6 @@ create policy "orders_rw" on public.orders
 -- placeholders: ordered records that are not on Discogs yet have no release id
 alter table public.orders alter column discogs_release_id drop not null;
 alter table public.collection_items add column if not exists signature_url text; -- photo of the signature (only shown when signed)
+-- limited editions: "Nummer 123 (von 300)"
+alter table public.collection_items add column if not exists number_no integer;
+alter table public.collection_items add column if not exists number_total integer;
