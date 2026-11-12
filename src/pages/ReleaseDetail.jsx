@@ -8,6 +8,7 @@ import { deletePhoto } from '../lib/supabase.js'
 import OrderSheet from '../components/OrderSheet.jsx'
 import RecordDetails from '../components/RecordDetails.jsx'
 import Sheet from '../components/Sheet.jsx'
+import Loader from '../components/Loader.jsx'
 import ItemForm from '../components/ItemForm.jsx'
 import { vinylFormatDefaults } from '../lib/format.js'
 import { useWantlist, isWanted, want, unwant } from '../lib/wantlist.js'
@@ -34,7 +35,7 @@ export default function ReleaseDetail() {
   }, [id])
 
   if (error) return <div className="page"><p className="error center">{error}</p></div>
-  if (!data) return <div className="page"><p className="muted center">Lädt …</p></div>
+  if (!data) return <div className="page"><Loader /></div>
 
   const record = fromRelease(data.release)
   const owned = items.filter((i) => i.discogs_release_id === record.discogs_release_id)

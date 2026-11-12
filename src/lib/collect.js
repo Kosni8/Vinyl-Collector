@@ -17,9 +17,10 @@ export function useAddToCollection() {
   return useCallback(
     async (data, form) => {
       const record = fromRelease(data.release)
-      const { photoFile, removePhoto, ...details } = form
-      const [photo_url, spine_color, discogsCopy] = await Promise.all([
+      const { photoFile, removePhoto, signatureFile, removeSignature, ...details } = form
+      const [photo_url, signature_url, spine_color, discogsCopy] = await Promise.all([
         photoFile ? uploadPhoto(photoFile, 'records') : null,
+        signatureFile ? uploadPhoto(signatureFile, 'signatures') : null,
         coverColor(record.cover_url),
         addToDiscogsCollection(record.discogs_release_id).catch((e) => {
           console.warn('Discogs-Sammlung', e)
@@ -30,6 +31,7 @@ export function useAddToCollection() {
         ...record,
         ...details,
         photo_url,
+        ...(signature_url ? { signature_url } : {}),
         spine_color,
         discogs_instance_id: discogsCopy?.instance_id ?? null,
         ...PRICE_FIELDS(data.prices, details.condition),

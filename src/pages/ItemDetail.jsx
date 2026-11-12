@@ -6,6 +6,7 @@ import { uploadPhoto, deletePhoto } from '../lib/supabase.js'
 import { dateDe, formatTextDefaults, shapeName, conditionName, discsOf } from '../lib/format.js'
 import RecordDetails from '../components/RecordDetails.jsx'
 import Sheet from '../components/Sheet.jsx'
+import Loader from '../components/Loader.jsx'
 import ItemForm from '../components/ItemForm.jsx'
 import { VinylColorLabel } from '../components/VinylDot.jsx'
 
@@ -20,6 +21,7 @@ export default function ItemDetail() {
   const [busy, setBusy] = useState(false)
   const [pricesLoading, setPricesLoading] = useState(false)
   const [valueError, setValueError] = useState(null)
+  const [bigSignature, setBigSignature] = useState(false)
   const [suggestions, setSuggestions] = useState(null) // all conditions, from the last price refresh
 
   const loadPrices = (it) => {
@@ -44,18 +46,23 @@ export default function ItemDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item])
 
-  if (!item) return <div className="page"><p className="muted center">{loading ? 'Lädt …' : 'Platte nicht gefunden.'}</p></div>
+  if (!item) return <div className="page">{loading ? <Loader /> : <p className="muted center">Platte nicht gefunden.</p>}</div>
 
   const images = [item.photo_url, ...(item.images?.length ? item.images.map((i) => i.uri) : [item.cover_url])].filter(Boolean)
 
-  const save = async ({ photoFile, removePhoto, ...details }) => {
+  const save = async ({ photoFile, removePhoto, signatureFile, removeSignature, ...details }) => {
     setBusy(true)
     try {
       let photo_url = item.photo_url
       if (photoFile) photo_url = await uploadPhoto(photoFile, 'records')
       else if (removePhoto) photo_url = null
-      const updated = await updateItem(item.id, { ...details, photo_url })
+      // only sent when it changes, so saving keeps working before the column exists
+      const signature = {}
+      if (signatureFile) signature.signature_url = await uploadPhoto(signatureFile, 'signatures')
+      else if (removeSignature) signature.signature_url = null
+      const updated = await updateItem(item.id, { ...details, ...signature, photo_url })
       if (photo_url !== item.photo_url) deletePhoto(item.photo_url)
+      if ('signature_url' in signature) deletePhoto(item.signature_url)
       setEditing(false)
       // the value depends on the condition
       if ((updated.condition ?? null) !== (item.condition ?? null)) loadPrices(updated)
@@ -108,6 +115,12 @@ export default function ItemDetail() {
           {item.shape && <div><dt>Form</dt><dd>{shapeName(item.shape)}</dd></div>}
           {item.condition && <div><dt>Zustand</dt><dd>{conditionName(item.condition)} ({item.condition})</dd></div>}
         </dl>
+        {item.signed && item.signature_url && (
+          <button type="button" className={'signature-photo' + (bigSignature ? ' big' : '')} onClick={() => setBigSignature((v) => !v)} aria-label="Foto der Signatur">
+            <img src={item.signature_url} alt="Signatur" />
+            <small>✍︎ Signatur</small>
+          </button>
+        )}
         {item.comment && <p className="comment">{item.comment}</p>}
         <p className="muted small">Hinzugefügt am {dateDe(item.added_at)}</p>
       </section>

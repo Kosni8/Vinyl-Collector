@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useData, SHELF_SLOTS } from '../lib/store.jsx'
 import { supabase, uploadPhoto, deletePhoto } from '../lib/supabase.js'
@@ -71,7 +71,7 @@ function DiscChoice({ item, value, onChange }) {
     <div className="chips">
       {distinctDiscs(item).map((d, i) => (
         <button type="button" key={i} className={'chip' + ((value ?? 0) === i ? ' on' : '')} onClick={() => onChange(i)}>
-          <VinylDot color={d.colors} pattern={d.pattern} cover={item.thumb_url} size={20} /> Platte {i + 1}
+          <VinylDot color={d.colors} pattern={d.pattern} cover={item.thumb_url} size={20} shape={item.shape} /> Platte {i + 1}
           {d.name ? <span className="chip-sub">{d.name}</span> : null}
         </button>
       ))}
@@ -461,11 +461,23 @@ export default function Home() {
 
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items])
   const fav = profile.fav_album_id ? byId.get(profile.fav_album_id) : null
-  const shelf = Array.from({ length: SHELF_SLOTS }, (_, i) => byId.get(profile.shelf?.[i]) ?? null)
   // The record shown big in the shelf (any size), separate from the favourite album (12" only).
   // Until one is chosen, the favourite album is shown, like before.
   const front = byId.get(profile.shelf_record_id ?? profile.fav_album_id) ?? null
+  // Every album only once in the shelf: the big record is its first spine, so a slot
+  // holding it (or an album already further left) is shown as an empty spot.
+  const shelf = (() => {
+    const seen = new Set(front ? [front.id] : [])
+    return Array.from({ length: SHELF_SLOTS }, (_, i) => {
+      const it = byId.get(profile.shelf?.[i]) ?? null
+      if (!it || seen.has(it.id)) return null
+      seen.add(it.id)
+      return it
+    })
+  })()
   const shelfBg = tint(front?.spine_color ?? '#e8a0a0', 0.75)
+  // the big record is already in the shelf, so it is not offered for a spine
+  const notFront = useCallback((i) => i.id !== front?.id, [front?.id])
   const pageBg = profile.home_bg || DEFAULT_BG
   const showVinyl = profile.fav_display !== 'cover' // the record is the default
   const pageInk = textOn(pageBg)
@@ -511,13 +523,18 @@ export default function Home() {
       return // the favourite album only fills its box: no shelf colour needed
     } else if (picker === 'front') {
       try {
-        await updateProfile({ shelf_record_id: item?.id ?? null, fav_disc: null })
+        // an album taken from the shelf to be the big record leaves its spot empty
+        const slots = Array.from({ length: SHELF_SLOTS }, (_, i) => profile.shelf?.[i] ?? null)
+        const patch = { shelf_record_id: item?.id ?? null, fav_disc: null }
+        if (item && slots.includes(item.id)) patch.shelf = slots.map((id) => (id === item.id ? null : id))
+        await updateProfile(patch)
       } catch (e) {
         alert('Speichern fehlgeschlagen: ' + e.message + '\n\nFalls eine Spalte fehlt: Das SQL-Update in Supabase muss noch ausgeführt werden.')
         return
       }
     } else {
-      const next = Array.from({ length: SHELF_SLOTS }, (_, i) => profile.shelf?.[i] ?? null)
+      // an album already elsewhere in the shelf moves here; its old spot stays empty
+      const next = Array.from({ length: SHELF_SLOTS }, (_, i) => (item && profile.shelf?.[i] === item.id ? null : profile.shelf?.[i] ?? null))
       next[picker] = item?.id ?? null
       await updateProfile({ shelf: next })
     }
@@ -656,7 +673,7 @@ export default function Home() {
       <ItemPicker
         open={picker !== null}
         title={picker === 'fav' ? 'Lieblingsalbum wählen' : picker === 'front' ? 'Platte fürs Regal wählen' : 'Rücken fürs Regal wählen'}
-        filter={picker === 'fav' ? is12Inch : undefined}
+        filter={picker === 'fav' ? is12Inch : typeof picker === 'number' && front ? notFront : undefined}
         hint={picker === 'fav' ? 'Nur 12-Zoll-Platten. Die große Platte im Regal wählst du separat, indem du auf sie tippst.' : undefined}
         allowClear={picker !== null && picker !== 'front'}
         onClose={() => setPicker(null)}

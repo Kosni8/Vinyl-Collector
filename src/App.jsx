@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { supabase, isConfigured } from './lib/supabase.js'
 import { DataProvider, useData } from './lib/store.jsx'
 import TabBar from './components/TabBar.jsx'
+import Loader from './components/Loader.jsx'
 import Login from './pages/Login.jsx'
 import Home from './pages/Home.jsx'
 import Collection from './pages/Collection.jsx'
@@ -21,9 +22,10 @@ function ScrollToTop() {
 function Shell() {
   const { profile, error } = useData()
   if (!profile) {
+    if (!error) return <Loader full text="" size={120} />
     return (
       <div className="splash">
-        {error ? <p className="error">Datenbank nicht erreichbar: {error}</p> : <p className="muted">Lädt …</p>}
+        <p className="error">Datenbank nicht erreichbar: {error}</p>
       </div>
     )
   }
@@ -62,7 +64,7 @@ export default function App() {
       </div>
     )
   }
-  if (session === undefined) return <div className="splash" />
+  if (session === undefined) return <Loader full text="" size={120} />
   if (!session) return <Login />
   return (
     <DataProvider key={session.user.id}>
