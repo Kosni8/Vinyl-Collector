@@ -615,7 +615,7 @@ export default function Home() {
       {crop && (
         <ImageCropper
           file={crop.file}
-          aspect={crop.field === 'banner_url' ? 2.5 : 1}
+          aspect={crop.field === 'banner_url' ? 3.125 : 1}
           round={crop.field === 'avatar_url'}
           maxSize={crop.field === 'banner_url' ? 1600 : 600}
           title={crop.field === 'banner_url' ? 'Titelbild' : 'Profilbild'}
