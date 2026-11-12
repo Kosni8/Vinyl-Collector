@@ -334,6 +334,11 @@ textarea.text-input { resize: vertical; }
 .signature-photo small { color: var(--muted); font-size: 12px; }
 .check { display: flex; align-items: center; gap: 10px; margin: 16px 0 4px; font-weight: 600; }
 .check input { width: 22px; height: 22px; accent-color: var(--ink); }
+.number-fields { display: flex; align-items: flex-end; gap: 8px; margin-top: 6px; }
+.number-fields label { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.number-fields .text-input { width: 100%; margin-bottom: 0; }
+.number-fields .number-of { padding-bottom: 12px; color: var(--muted); font-weight: 600; }
+.text-input.invalid { border-color: var(--danger); }
 
 /* shelf colour */
 .spine-picker { display: flex; gap: 12px; align-items: center; }

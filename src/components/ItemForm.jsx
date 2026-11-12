@@ -183,6 +183,10 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
   const [photo, setPhoto] = useState(null)
   const [preview, setPreview] = useState(initial.photo_url ?? null)
   const [removePhoto, setRemovePhoto] = useState(false)
+  const [numbered, setNumbered] = useState(initial.number_no != null)
+  const [numberNo, setNumberNo] = useState(initial.number_no != null ? String(initial.number_no) : '')
+  const [numberTotal, setNumberTotal] = useState(initial.number_total != null ? String(initial.number_total) : '')
+  const [numberError, setNumberError] = useState(false)
   const [signature, setSignature] = useState(null) // new photo of the signature
   const [signaturePreview, setSignaturePreview] = useState(initial.signature_url ?? null)
 
@@ -200,6 +204,10 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
       className="item-form"
       onSubmit={(e) => {
         e.preventDefault()
+        if (numbered && !numberNo) {
+          setNumberError(true)
+          return
+        }
         const used = discs.slice(0, count).map((d) => ({ ...d, name: d.name.trim() || colorsName(d.colors), shape: d.shape?.trim() || null }))
         onSubmit({
           size,
@@ -216,6 +224,10 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
           signed,
           // only sent when used, so saving keeps working before the column exists
           ...(signed || initial.signed_items?.length ? { signed_items: signed && signedItems.length ? signedItems : null } : {}),
+          // only sent when used, so saving keeps working before the columns exist
+          ...(numbered || initial.number_no != null
+            ? { number_no: numbered ? Number(numberNo) : null, number_total: numbered && numberTotal ? Number(numberTotal) : null }
+            : {}),
           photoFile: photo,
           removePhoto,
           // the signature photo only counts while "signed" is ticked
@@ -318,6 +330,39 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
           />
         </>
       )}
+
+      <label className="check">
+        <input type="checkbox" checked={numbered} onChange={(e) => { setNumbered(e.target.checked); setNumberError(false) }} />
+        Nummeriert?
+      </label>
+      {numbered && (
+        <div className="number-fields">
+          <label>
+            <span className="field-hint">Nummer</span>
+            <input
+              className={'text-input' + (numberError ? ' invalid' : '')}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={numberNo}
+              onChange={(e) => { setNumberNo(e.target.value.replace(/\D/g, '')); setNumberError(false) }}
+              placeholder="z. B. 123"
+            />
+          </label>
+          <span className="number-of">von</span>
+          <label>
+            <span className="field-hint">Insgesamt (optional)</span>
+            <input
+              className="text-input"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={numberTotal}
+              onChange={(e) => setNumberTotal(e.target.value.replace(/\D/g, ''))}
+              placeholder="z. B. 300"
+            />
+          </label>
+        </div>
+      )}
+      {numbered && numberError && <p className="error small">Bitte die Nummer eintragen.</p>}
 
       <button className="btn primary block" disabled={busy}>
         {busy ? 'Speichern …' : submitLabel}
