@@ -254,6 +254,9 @@ export default function ItemForm({ initial = {}, defaults = {}, cover, submitLab
           Eigenes
         </button>
       </div>
+      {!ownShape && shape === 'moth' && (
+        <p className="muted small hint">Die Motte sieht immer aus wie das Original, die Farbe oben wird dafür nicht verwendet.</p>
+      )}
       {ownShape && (
         <input
           className="text-input own-shape"

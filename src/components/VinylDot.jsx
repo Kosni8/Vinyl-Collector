@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { patternName, patternList, discsOf, shapeId } from '../lib/format.js'
+import mothUrl from '../assets/moth.webp'
 
 // ---------------------------------------------------------------------------
 // Records are drawn as SVG (viewBox 0 0 100 100, centre 50/50, radius 50), so the
@@ -87,7 +88,7 @@ function starPath(x, y, r) {
 
 
 // ---------------------------------------------------------------------------
-// Shaped records (heart, cloud, star, moth): one closed path each in the same
+// Shaped records (heart, cloud, star): one closed path each in the same
 // 0..100 box, with the centre hole at 50/50 inside the shape.
 // ---------------------------------------------------------------------------
 
@@ -123,24 +124,17 @@ export const SHAPE_PATHS = {
   ]),
   cloud: 'M24 78A15 15 0 0 1 12 52A16 16 0 0 1 30 32A20 20 0 0 1 64 24A17 17 0 0 1 86 44A17 17 0 0 1 80 78Z',
   star: starShape(),
-  // broad forewings, rounded hind wings and a plump body (same winding, so they join)
-  moth:
-    mirrored([50, 30], [
-      [[40, 20], [16, 8], [4, 13]],
-      [[0, 26], [6, 44], [16, 52]],
-      [[24, 57], [36, 55], [44, 54]],
-      [[30, 60], [14, 70], [19, 82]],
-      [[24, 93], [40, 90], [46, 78]],
-      [[47, 83], [48, 87], [50, 89]],
-    ]) + 'M50 22A7.5 34 0 0 0 50 90A7.5 34 0 0 0 50 22Z',
-}
-/** Feelers drawn on top of the moth (not part of the record itself). */
-const SHAPE_DECOR = {
-  moth: 'M47.5 24C45 14 40 8 33 5M52.5 24C55 14 60 8 67 5',
 }
 /** Centre hole and label radius per shape (shapes are narrower than a round record). */
-const SHAPE_HOLE = { heart: 8, cloud: 9, star: 8, moth: 5 }
-const SHAPE_LABEL = { moth: 10, star: 16 }
+const SHAPE_HOLE = { heart: 8, cloud: 9, star: 8 }
+const SHAPE_LABEL = { star: 16 }
+
+/**
+ * The moth is one particular record: it is always drawn from the photo of it
+ * (colours and pattern are ignored), centred on its hole.
+ */
+const PHOTO_SHAPES = { moth: mothUrl }
+const isShaped = (shape) => { const id = shapeId(shape); return !!(SHAPE_PATHS[id] || PHOTO_SHAPES[id]) }
 
 /**
  * One pattern. `overlay`: drawn on top of another pattern, so only the marks are drawn
@@ -297,6 +291,14 @@ export function VinylArt({ colors = '#1a1a1a', pattern = 'solid', cover, size, b
   const uid = 'v' + useId().replace(/[^a-zA-Z0-9]/g, '')
   const list = (Array.isArray(colors) ? colors : [colors]).filter(Boolean)
   const sid = shapeId(shape)
+  if (PHOTO_SHAPES[sid]) {
+    return (
+      <svg className={'vinyl-art shaped photo' + (big ? ' big' : '')} viewBox="0 0 100 100" width={size} height={size} aria-hidden="true">
+        {/* a bit larger in small dots, where the wide moth would look tiny */}
+        <image href={PHOTO_SHAPES[sid]} x={big ? 0 : -15} y={big ? 0 : -15} width={big ? 100 : 130} height={big ? 100 : 130} />
+      </svg>
+    )
+  }
   const outline = SHAPE_PATHS[sid] // undefined = round
   const holeR = big ? 2.2 : outline ? SHAPE_HOLE[sid] : 15
   const labelR = outline ? SHAPE_LABEL[sid] ?? 18 : 18
@@ -353,9 +355,6 @@ export function VinylArt({ colors = '#1a1a1a', pattern = 'solid', cover, size, b
           </>
         )}
       </g>
-      {SHAPE_DECOR[sid] && (
-        <path d={SHAPE_DECOR[sid]} fill="none" stroke={list[0]} strokeWidth={big ? 1.6 : 3} strokeLinecap="round" />
-      )}
       {outline ? (
         <path d={outline} fill="none" stroke="#000" strokeOpacity="0.22" strokeWidth="1" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
       ) : (
@@ -376,7 +375,7 @@ export function VinylDisc({ item, disc = 0 }) {
   const all = discsOf(item)
   const d = all[disc] ?? all[0]
   return (
-    <span className={'vinyl-disc' + (SHAPE_PATHS[shapeId(item.shape)] ? ' shaped' : '')}>
+    <span className={'vinyl-disc' + (isShaped(item.shape) ? ' shaped' : '')}>
       <span className="vinyl-rot">
         <VinylArt big colors={d.colors} pattern={d.pattern} cover={item.cover_url} label={item.cover_url} shape={item.shape} />
       </span>
@@ -387,7 +386,8 @@ export function VinylDisc({ item, disc = 0 }) {
 export function VinylColorLabel({ item, showSigned = true }) {
   const discs = discsOf(item)
   // pattern always shown, also "Einfarbig", so every record reads the same way
-  const name = (d) => `${d.name} · ${patternName(d.pattern || 'solid')}`
+  // the moth record always looks the same (photo), so its colours are not listed
+  const name = (d) => (shapeId(item.shape) === 'moth' ? 'Motten-Vinyl' : `${d.name} · ${patternName(d.pattern || 'solid')}`)
   const allSame = discs.every((d) => name(d) === name(discs[0]))
   return (
     <span className="vinyl-label">
