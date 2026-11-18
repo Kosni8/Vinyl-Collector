@@ -143,3 +143,6 @@ alter table public.collection_items add column if not exists signature_url text;
 -- limited editions: "Nummer 123 (von 300)"
 alter table public.collection_items add column if not exists number_no integer;
 alter table public.collection_items add column if not exists number_total integer;
+-- where an ordered record was bought (own tag on the card, not part of the title)
+alter table public.orders add column if not exists shop text;
+alter table public.profile add column if not exists want_order jsonb; -- own order of the wantlist (Discogs release ids)

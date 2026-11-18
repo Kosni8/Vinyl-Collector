@@ -125,6 +125,11 @@ export function vinylFormatDefaults(formats = []) {
   return { size, count: Math.min(MAX_DISCS, Math.max(1, count || 1)) }
 }
 
+/** Size from a search result's flat format list like ['Vinyl', 'LP', 'Album'] (LP without size = 12"). */
+export function searchSizeOf(fmt = []) {
+  return SIZES.find((sz) => fmt.includes(sz)) ?? (fmt.includes('LP') ? '12"' : null)
+}
+
 /** Same as vinylFormatDefaults, read from a stored format text like '2× Vinyl (LP, 12", Album)'. */
 export function formatTextDefaults(text = '') {
   const count = (text ?? '')

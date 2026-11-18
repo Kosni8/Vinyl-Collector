@@ -28,7 +28,7 @@ const memory = { q: '', sort: 'artist', asc: true, colors: [], patterns: [], siz
 const toggle = (list, v) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
 
 export default function Collection() {
-  const { items, loading, refreshAllPrices, progress } = useData()
+  const { items, profile, loading, refreshAllPrices, progress } = useData()
   const [q, setQ] = useState(memory.q)
   const [sort, setSort] = useState(memory.sort)
   const [asc, setAsc] = useState(memory.asc)
@@ -105,9 +105,9 @@ export default function Collection() {
         <p className="muted small">{list.length} von {items.length} Platten</p>
       )}
       {!loading && items.length > 0 && !list.length && <p className="muted center">Nichts gefunden.</p>}
-      <div className="record-list">
+      <div className="record-list" style={profile?.fav_icon_color ? { '--fav-icon': profile.fav_icon_color } : undefined}>
         {list.map((it) => (
-          <RecordRow key={it.id} to={`/sammlung/${it.id}`} item={it} />
+          <RecordRow key={it.id} to={`/sammlung/${it.id}`} item={it} fav={profile?.fav_album_id === it.id} />
         ))}
       </div>
       <Sheet open={filterOpen} onClose={() => setFilterOpen(false)} title="Filter">

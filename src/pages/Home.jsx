@@ -18,7 +18,7 @@ import ImageCropper from '../components/ImageCropper.jsx'
 import SpineColorSheet from '../components/SpineColorSheet.jsx'
 import { VinylDisc, VinylDot } from '../components/VinylDot.jsx'
 import { discsOf, sizeOf } from '../lib/format.js'
-import { GearIcon, PersonIcon, DiscIcon, NoteIcon, CheckIcon, PlusIcon } from '../components/Icons.jsx'
+import { GearIcon, PersonIcon, DiscIcon, NoteIcon, CheckIcon, PlusIcon, ShopIcon } from '../components/Icons.jsx'
 
 function TextSheet({ edit, onClose, onSave }) {
   const [value, setValue] = useState(edit?.value ?? '')
@@ -248,9 +248,120 @@ function Settings({ open, onClose, onEdit }) {
   )
 }
 
-/** The Discogs wantlist as a row of covers. */
+const WANT_STEP = 132 // cover width 120 + gap 12
+const HOLD_MS = 350 // press this long on a cover to pick it up
+
+/** Wantlist in our own order (profile.want_order); records not sorted yet come first, newest first. */
+function sortWants(wants, order) {
+  if (!wants || !order?.length) return wants
+  const pos = new Map(order.map((id, i) => [Number(id), i]))
+  const fresh = wants.filter((w) => !pos.has(w.discogs_release_id))
+  const sorted = wants.filter((w) => pos.has(w.discogs_release_id)).sort((a, b) => pos.get(a.discogs_release_id) - pos.get(b.discogs_release_id))
+  return [...fresh, ...sorted]
+}
+
+/**
+ * The Discogs wantlist as a row of covers. Pressing a cover a moment picks it up,
+ * then it can be dragged to another place; the order is saved in the profile.
+ */
 function Wantlist() {
-  const { wants, error } = useWantlist({ refresh: true })
+  const { wants: raw, error } = useWantlist({ refresh: true })
+  const { profile, updateProfile } = useData()
+  const wants = useMemo(() => sortWants(raw, profile.want_order), [raw, profile.want_order])
+  const rowRef = useRef(null)
+  const press = useRef(null) // { id, index, x, timer, startScroll, lastX }
+  const [drag, setDrag] = useState(null) // { index, over, dx }
+  const dragRef = useRef(null)
+  dragRef.current = drag
+  const justDragged = useRef(false)
+  const auto = useRef(null)
+
+  // While a cover is held, the row must not scroll by touch (iOS ignores touch-action mid-gesture).
+  useEffect(() => {
+    const row = rowRef.current
+    if (!row) return
+    const block = (e) => dragRef.current && e.preventDefault()
+    row.addEventListener('touchmove', block, { passive: false })
+    return () => row.removeEventListener('touchmove', block)
+  }, [wants?.length])
+
+  const update = (clientX) => {
+    const p = press.current, row = rowRef.current
+    if (!p || !row) return
+    p.lastX = clientX
+    const dx = clientX - p.x + (row.scrollLeft - p.startScroll)
+    const over = Math.max(0, Math.min(wants.length - 1, p.index + Math.round(dx / WANT_STEP)))
+    setDrag({ index: p.index, over, dx })
+  }
+
+  // near the edges the row scrolls along while dragging
+  const autoScroll = () => {
+    const p = press.current, row = rowRef.current
+    if (!p || !row || !dragRef.current) return
+    const r = row.getBoundingClientRect()
+    const v = p.lastX < r.left + 40 ? -8 : p.lastX > r.right - 40 ? 8 : 0
+    if (v) {
+      row.scrollLeft += v
+      update(p.lastX)
+    }
+    auto.current = requestAnimationFrame(autoScroll)
+  }
+
+  const onPointerDown = (e, index) => {
+    if (e.button > 0) return
+    const row = rowRef.current
+    const p = { index, x: e.clientX, lastX: e.clientX, startScroll: row.scrollLeft, pointerId: e.pointerId }
+    p.timer = setTimeout(() => {
+      press.current = p
+      try { row.setPointerCapture(p.pointerId) } catch {}
+      navigator.vibrate?.(10)
+      setDrag({ index, over: index, dx: 0 })
+      auto.current = requestAnimationFrame(autoScroll)
+    }, HOLD_MS)
+    press.current = { ...p, waiting: true }
+  }
+
+  const onPointerMove = (e) => {
+    const p = press.current
+    if (!p) return
+    if (p.waiting) {
+      // moved before the hold time: it is a scroll or a tap, not a drag
+      if (Math.abs(e.clientX - p.x) > 8 || Math.abs(e.clientY - (p.y ?? e.clientY)) > 8) {
+        clearTimeout(p.timer)
+        press.current = null
+      }
+      return
+    }
+    update(e.clientX)
+  }
+
+  const finish = async () => {
+    const p = press.current
+    press.current = null
+    if (p?.timer) clearTimeout(p.timer)
+    cancelAnimationFrame(auto.current)
+    const d = dragRef.current
+    if (!d) return
+    setDrag(null)
+    justDragged.current = true
+    setTimeout(() => (justDragged.current = false), 50)
+    if (d.over === d.index) return
+    const next = [...wants]
+    const [moved] = next.splice(d.index, 1)
+    next.splice(d.over, 0, moved)
+    try {
+      await updateProfile({ want_order: next.map((w) => w.discogs_release_id) })
+    } catch (err) {
+      alert('Reihenfolge nicht gespeichert: ' + err.message + '\n\nFalls die Spalte fehlt: Das SQL-Update in Supabase muss noch ausgeführt werden.')
+    }
+  }
+
+  const shift = (i) => {
+    if (!drag || i === drag.index) return 0
+    if (drag.index < drag.over && i > drag.index && i <= drag.over) return -WANT_STEP
+    if (drag.index > drag.over && i < drag.index && i >= drag.over) return WANT_STEP
+    return 0
+  }
 
   return (
     <section className="wantlist">
@@ -259,10 +370,28 @@ function Wantlist() {
       {!error && !wants && <p className="muted small pad">Lädt …</p>}
       {wants && !wants.length && <p className="muted small pad">Wantlist ist leer.</p>}
       {wants?.length > 0 && (
-        <div className="want-row">
-          {wants.map((w) => (
-            <Link key={w.discogs_release_id} to={`/release/${w.discogs_release_id}`} className="want">
-              {w.cover_url || w.thumb_url ? <img src={w.cover_url || w.thumb_url} alt="" loading="lazy" /> : <span className="want-empty" />}
+        <div
+          ref={rowRef}
+          className={'want-row' + (drag ? ' sorting' : '')}
+          onPointerMove={onPointerMove}
+          onPointerUp={finish}
+          onPointerCancel={finish}
+        >
+          {wants.map((w, i) => (
+            <Link
+              key={w.discogs_release_id}
+              to={`/release/${w.discogs_release_id}`}
+              className={'want' + (drag?.index === i ? ' lifted' : '')}
+              style={drag ? { transform: `translateX(${drag.index === i ? drag.dx : shift(i)}px)` } : undefined}
+              draggable={false}
+              onPointerDown={(e) => {
+                onPointerDown(e, i)
+                if (press.current) press.current.y = e.clientY
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              onClick={(e) => justDragged.current && e.preventDefault()}
+            >
+              {w.cover_url || w.thumb_url ? <img src={w.cover_url || w.thumb_url} alt="" loading="lazy" draggable={false} /> : <span className="want-empty" />}
               <strong>{w.title}</strong>
               <small>{w.artist}</small>
             </Link>
@@ -279,7 +408,14 @@ function OrderCardBody({ order: o }) {
       {o.thumb_url || o.cover_url ? <img className="order-cover" src={o.thumb_url || o.cover_url} alt="" loading="lazy" /> : <span className="order-cover empty"><DiscIcon width={28} height={28} /></span>}
       <span className="order-text">
         <strong className="ellipsis">{o.title}</strong>
-        <span className="order-artist ellipsis">{o.artist}</span>
+        <span className="order-artist-row">
+          <span className="order-artist ellipsis">{o.artist}</span>
+          {o.shop && (
+            <span className="order-shop" aria-label={`Bestellt bei ${o.shop}`}>
+              <ShopIcon width={12} height={12} /> <span className="ellipsis">{o.shop}</span>
+            </span>
+          )}
+        </span>
       </span>
     </>
   )
@@ -373,11 +509,13 @@ function Ordered() {
                 <OrderCardBody order={o} />
               </Link>
             )}
-            <button className={'order-date' + (o.date ? '' : ' empty') + (isDue(o) ? ' due' : '')} onClick={() => setDateFor(o)}>
-              {orderDateText(o) ?? '+ Datum eintragen'}
-            </button>
+            <div className="order-tags">
+              <button className={'order-date' + (o.date ? '' : ' empty') + (isDue(o) ? ' due' : '')} onClick={() => setDateFor(o)}>
+                {orderDateText(o) ?? '+ Datum eintragen'}
+              </button>
+            </div>
             <button
-              className={'order-arrived' + (isDue(o) ? ' due' : '')}
+              className="order-arrived"
               onClick={() => openArrived(o)}
               disabled={loadingId === o.id}
               aria-label={`${o.title} ist angekommen`}
@@ -409,7 +547,7 @@ function Ordered() {
       <OrderSheet
         open={!!dateFor}
         onClose={() => setDateFor(null)}
-        title="Datum ändern"
+        title="Bestellung ändern"
         order={dateFor}
         onSave={async (dates) => {
           await updateOrder(dateFor.id, dates)

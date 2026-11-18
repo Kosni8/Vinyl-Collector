@@ -7,12 +7,13 @@ import SearchField from '../components/SearchField.jsx'
 import { BarcodeIcon } from '../components/Icons.jsx'
 import { useWantlist, isWanted } from '../lib/wantlist.js'
 import { getPendingPlaceholder, setPendingPlaceholder } from '../lib/orders.js'
+import { SIZES } from '../lib/format.js'
 
 // Keeps query and results while switching tabs or opening a detail page.
 // The barcode library is large, so it is only loaded when the scanner opens.
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner.jsx'))
 
-const memory = { q: '', barcode: null, results: [], page: 1, pages: 0, country: '', autorun: false }
+const memory = { q: '', barcode: null, results: [], page: 1, pages: 0, country: '', sizes: [], autorun: false }
 
 /** Opens the search with this query already typed in and searched. */
 export function startSearch(q) {
@@ -55,6 +56,7 @@ export default function Search() {
   const [error, setError] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [country, setCountry] = useState(memory.country)
+  const [sizes, setSizes] = useState(memory.sizes)
   const lastRun = useRef(memory.autorun ? '' : memory.q) // '' lets a started search run at once
   memory.autorun = false
   const [pending, setPending] = useState(getPendingPlaceholder)
@@ -63,7 +65,7 @@ export default function Search() {
     window.addEventListener('pending-placeholder', update)
     return () => window.removeEventListener('pending-placeholder', update)
   }, [])
-  Object.assign(memory, { q, barcode, results, page, pages, country })
+  Object.assign(memory, { q, barcode, results, page, pages, country, sizes })
 
   const owned = useMemo(() => {
     const m = new Map()
@@ -71,7 +73,14 @@ export default function Search() {
     return m
   }, [items])
 
-  const run = useCallback(async (query, p = 1, code = null, region = '') => {
+  // With exactly one size Discogs can filter already; otherwise the results are filtered here.
+  const serverSize = sizes.length === 1 ? sizes[0] : ''
+  const shown = useMemo(
+    () => (sizes.length ? results.filter((r) => r.isVinyl && sizes.includes(r.size)) : results),
+    [results, sizes],
+  )
+
+  const run = useCallback(async (query, p = 1, code = null, region = '', size = '') => {
     if (!code && !query.trim()) {
       setResults([])
       setPages(0)
@@ -80,7 +89,7 @@ export default function Search() {
     setLoading(true)
     setError(null)
     try {
-      const data = code ? await searchBarcode(code, region) : await searchVinyl(query.trim(), p, region)
+      const data = code ? await searchBarcode(code, region) : await searchVinyl(query.trim(), p, region, size)
       const rows = data.results.map(fromSearchResult)
       if (code) {
         // Exactly one pressing with this barcode: go straight to its page.
@@ -104,10 +113,10 @@ export default function Search() {
     if (barcode || q === lastRun.current) return
     const t = setTimeout(() => {
       lastRun.current = q
-      run(q, 1, null, country)
+      run(q, 1, null, country, serverSize)
     }, 500)
     return () => clearTimeout(t)
-  }, [q, barcode, run, country])
+  }, [q, barcode, run, country, serverSize])
 
   // Clears query, barcode and results (× button or tapping the Suche tab again).
   const reset = useCallback(() => {
@@ -148,7 +157,7 @@ export default function Search() {
             e.preventDefault()
             document.activeElement?.blur()
             lastRun.current = q
-            run(q, 1, null, country)
+            run(q, 1, null, country, serverSize)
           }}
         >
           <SearchField
@@ -172,13 +181,31 @@ export default function Search() {
             setCountry(e.target.value)
             if (barcode) return run('', 1, barcode, e.target.value)
             lastRun.current = q
-            run(q, 1, null, e.target.value)
+            run(q, 1, null, e.target.value, serverSize)
           }}
         >
           {REGIONS.map(([v, label]) => (
             <option key={v} value={v}>{label}</option>
           ))}
         </select>
+        <div className="chips size-chips">
+          {SIZES.map((sz) => (
+            <button
+              key={sz}
+              type="button"
+              className={'chip' + (sizes.includes(sz) ? ' on' : '')}
+              onClick={() => {
+                const next = sizes.includes(sz) ? sizes.filter((x) => x !== sz) : [...sizes, sz]
+                setSizes(next)
+                if (barcode || !q.trim()) return
+                lastRun.current = q
+                run(q, 1, null, country, next.length === 1 ? next[0] : '')
+              }}
+            >
+              {sz.replace('"', ' Zoll')}
+            </button>
+          ))}
+        </div>
         {barcode && (
           <p className="muted small">
             Barcode {barcode} ·{' '}
@@ -197,17 +224,17 @@ export default function Search() {
         </div>
       )}
       {error && <p className="error center">{error}</p>}
-      {!loading && !error && (q || barcode) && !results.length && <p className="muted center">Keine Vinyls gefunden.</p>}
+      {!loading && !error && (q || barcode) && !shown.length && <p className="muted center">Keine Vinyls gefunden.</p>}
       {!q && !barcode && !results.length && <p className="muted center">Suche nach Album oder Künstler, oder scanne den Barcode auf der Rückseite der Platte.</p>}
 
       <div className="record-list">
-        {results.map((r, i) => (
+        {shown.map((r, i) => (
           <RecordRow key={r.discogs_release_id + '-' + i} to={`/release/${r.discogs_release_id}`} item={r} owned={owned.get(r.discogs_release_id)} wanted={isWanted(wants, r.discogs_release_id)} />
         ))}
       </div>
       {loading && <p className="muted center">Sucht …</p>}
       {!loading && !barcode && page < pages && (
-        <button className="btn ghost block" onClick={() => run(q, page + 1, null, country)}>Mehr laden</button>
+        <button className="btn ghost block" onClick={() => run(q, page + 1, null, country, serverSize)}>Mehr laden</button>
       )}
       {scanning && (
         <Suspense fallback={null}>

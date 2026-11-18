@@ -1,4 +1,5 @@
 import { supabase, SUPABASE_URL, SUPABASE_KEY } from './supabase.js'
+import { searchSizeOf } from './format.js'
 
 /** Calls the "discogs" Edge Function (the Discogs token lives only there). */
 async function call(action, params = {}, { raw = false } = {}) {
@@ -24,7 +25,7 @@ async function call(action, params = {}, { raw = false } = {}) {
   return raw ? res : res.json()
 }
 
-export const searchVinyl = (q, page = 1, country = '') => call('search', { q, page, country })
+export const searchVinyl = (q, page = 1, country = '', size = '') => call('search', { q, page, country, size })
 export const searchBarcode = (barcode, country = '') => call('search', { barcode, country })
 export const getRelease = (id) => call('release', { id })
 export const getPrices = (id) => call('prices', { id })
@@ -78,6 +79,8 @@ export function fromSearchResult(r) {
     cover_url: r.cover_image,
     thumb_url: r.thumb,
     barcodes: (r.barcode ?? []).map((b) => b.replace(/\D/g, '')),
+    isVinyl: vinylIdx >= 0,
+    size: searchSizeOf(fmt),
   }
 }
 
