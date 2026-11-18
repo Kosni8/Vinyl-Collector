@@ -95,6 +95,9 @@ function searchParams(p: Record<string, unknown>) {
   })
   if (p.q) params.set('q', String(p.q))
   if (p.barcode) params.set('barcode', String(p.barcode).replace(/\D/g, ''))
+  // one record size (e.g. 7"): Discogs filters by that format instead of "Vinyl"; the app
+  // drops non-vinyl results itself. 12" stays "Vinyl", since LPs often carry no size.
+  if (p.size && p.size !== '12"') params.set('format', String(p.size))
   // optional Discogs search filters
   for (const key of ['country', 'year', 'artist', 'release_title', 'label', 'sort', 'sort_order']) {
     if (p[key]) params.set(key, String(p[key]))

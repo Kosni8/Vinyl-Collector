@@ -94,18 +94,6 @@ function starPath(x, y, r) {
 
 const f2 = (v) => +v.toFixed(2)
 
-/** Mirrors a left half (cubic segments from the top of the axis down to its bottom) to a closed path. */
-function mirrored(start, segs) {
-  const mx = ([x, y]) => [100 - x, y]
-  const pts = (list) => list.map((p) => p.map(f2).join(' ')).join(' ')
-  let d = `M${pts([start])}`
-  for (const s of segs) d += `C${pts(s)}`
-  // back up the right side: reverse each segment, mirror it
-  const ends = [start, ...segs.map((s) => s[2])]
-  for (let i = segs.length - 1; i >= 0; i--) d += `C${pts([mx(segs[i][1]), mx(segs[i][0]), mx(ends[i])])}`
-  return d + 'Z'
-}
-
 function starShape() {
   const pts = []
   for (let i = 0; i < 10; i++) {
@@ -117,11 +105,8 @@ function starShape() {
 }
 
 export const SHAPE_PATHS = {
-  heart: mirrored([50, 26], [
-    [[44, 12], [26, 4], [13, 12]],
-    [[2, 19], [-1, 38], [8, 52]],
-    [[18, 67], [36, 79], [50, 93]],
-  ]),
+  // wide round shoulders and a pointed tip, like the heart records Nikos has; scaled to fit the round turntable
+  heart: 'M50 25.51C46.37 15.53 37.3 10.09 27.32 10.09C12.81 10.09 4.65 21.88 4.65 35.49C4.65 53.63 24.6 69.95 50 92.63C75.4 69.95 95.35 53.63 95.35 35.49C95.35 21.88 87.19 10.09 72.68 10.09C62.7 10.09 53.63 15.53 50 25.51Z',
   cloud: 'M20 80A15 15 0 0 1 8 54A16 16 0 0 1 26 34A20 20 0 0 1 60 26A17 17 0 0 1 82 46A17 17 0 0 1 76 80Z', // centred on the hole
   star: starShape(),
 }

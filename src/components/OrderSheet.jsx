@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Sheet from './Sheet.jsx'
 import { CameraIcon } from './Icons.jsx'
 import { DATE_KINDS } from '../lib/orders.js'
+import { useData } from '../lib/store.jsx'
 
 /**
- * Sheet to enter or change an order's date: delivery or release date, both optional.
+ * Sheet to enter or change an order's date (delivery or release date, optional) and the
+ * shop it was ordered from (optional, shown as its own tag on the card).
  * withDetails also asks for title, artist and an optional picture (placeholders for
  * records that are not on Discogs yet); onSave then also gets title, artist, photoFile
  * and removePhoto. onRemove (optional) shows a button to take the record off the list,
@@ -19,11 +21,16 @@ export default function OrderSheet({ open, onClose, title, order, submitLabel = 
   const [preview, setPreview] = useState(null)
   const [removePhoto, setRemovePhoto] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [shop, setShop] = useState('')
+  const { orders } = useData()
+  // shops used before, offered as suggestions while typing
+  const shops = useMemo(() => [...new Set(orders.map((o) => o.shop?.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de')), [orders])
 
   useEffect(() => {
     if (!open) return
     setKind(order?.date_kind ?? 'delivery')
     setDate(order?.date ?? '')
+    setShop(order?.shop ?? '')
     setName(order?.title ?? '')
     setArtist(order?.artist ?? '')
     setPhoto(null)
@@ -49,6 +56,8 @@ export default function OrderSheet({ open, onClose, title, order, submitLabel = 
         onSubmit={(e) => {
           e.preventDefault()
           const dates = { date_kind: kind, date: date || null }
+          // only sent when used, so saving still works before the "shop" column exists
+          if (shop.trim() || order?.shop) dates.shop = shop.trim() || null
           run(() => onSave(withDetails ? { ...dates, title: name.trim(), artist: artist.trim(), photoFile: photo, removePhoto } : dates))
         }}
       >
@@ -114,6 +123,11 @@ export default function OrderSheet({ open, onClose, title, order, submitLabel = 
             </button>
           )}
         </div>
+        <label className="field-label" htmlFor="order-shop">Wo bestellt? (optional)</label>
+        <input id="order-shop" className="text-input" list="order-shops" value={shop} onChange={(e) => setShop(e.target.value)} placeholder="z. B. JPC oder Bandshop" autoComplete="off" />
+        <datalist id="order-shops">
+          {shops.map((s) => <option key={s} value={s} />)}
+        </datalist>
         <button className="btn primary block" disabled={busy}>{busy ? 'Speichert …' : submitLabel}</button>
         {children}
         {onRemove && (

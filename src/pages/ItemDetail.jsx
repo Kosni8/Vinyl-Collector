@@ -122,7 +122,7 @@ export default function ItemDetail() {
           )}
           {shapeText(item) && <div><dt>Form</dt><dd>{shapeText(item)}</dd></div>}
           {item.number_no != null && (
-            <div><dt>Nummeriert</dt><dd>Nummer {item.number_no}{item.number_total != null ? ` von ${item.number_total}` : ''}</dd></div>
+            <div><dt>No</dt><dd>{item.number_no}{item.number_total != null ? ` von ${item.number_total}` : ''}</dd></div>
           )}
           {item.condition && <div><dt>Zustand</dt><dd>{conditionName(item.condition)} ({item.condition})</dd></div>}
         </dl>

@@ -50,3 +50,6 @@ export const CheckIcon = (p) => (
 export const PlusIcon = (p) => (
   <svg {...base} {...p}><path d="M12 5v14M5 12h14" /></svg>
 )
+export const ShopIcon = (p) => (
+  <svg {...base} {...p}><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 0 1 6 0" /></svg>
+)
