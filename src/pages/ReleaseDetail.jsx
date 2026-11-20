@@ -82,6 +82,8 @@ export default function ReleaseDetail() {
         ...dates,
       })
     setOrdering(false)
+    // Ordered now: it is no longer wanted. Always try, Discogs answers 404 if it was not on the list.
+    if (!order) unwant(record.discogs_release_id).catch((e) => console.warn('Wantlist', e))
   }
 
   // The placeholder becomes a normal order of this record; its date stays.
@@ -98,6 +100,7 @@ export default function ReleaseDetail() {
           thumb_url: record.thumb_url,
         })
       deletePhoto(placeholder.cover_url)
+      unwant(record.discogs_release_id).catch((e) => console.warn('Wantlist', e))
       setPendingPlaceholder(null)
       clearSearch()
       navigate('/')

@@ -269,35 +269,28 @@ function Wantlist() {
   const { profile, updateProfile } = useData()
   const wants = useMemo(() => sortWants(raw, profile.want_order), [raw, profile.want_order])
   const rowRef = useRef(null)
-  const press = useRef(null) // { id, index, x, timer, startScroll, lastX }
+  // { phase: 'wait' | 'drag', index, x, y, lastX, startScroll, timer } – kept in a ref so the
+  // touch handlers see changes at once (a React state update would come one frame too late)
+  const press = useRef(null)
   const [drag, setDrag] = useState(null) // { index, over, dx }
-  const dragRef = useRef(null)
-  dragRef.current = drag
+  const wantsRef = useRef(wants)
+  wantsRef.current = wants
   const justDragged = useRef(false)
   const auto = useRef(null)
 
-  // While a cover is held, the row must not scroll by touch (iOS ignores touch-action mid-gesture).
-  useEffect(() => {
-    const row = rowRef.current
-    if (!row) return
-    const block = (e) => dragRef.current && e.preventDefault()
-    row.addEventListener('touchmove', block, { passive: false })
-    return () => row.removeEventListener('touchmove', block)
-  }, [wants?.length])
-
-  const update = (clientX) => {
-    const p = press.current, row = rowRef.current
-    if (!p || !row) return
+  const update = useCallback((clientX) => {
+    const p = press.current, row = rowRef.current, list = wantsRef.current
+    if (!p || p.phase !== 'drag' || !row || !list) return
     p.lastX = clientX
     const dx = clientX - p.x + (row.scrollLeft - p.startScroll)
-    const over = Math.max(0, Math.min(wants.length - 1, p.index + Math.round(dx / WANT_STEP)))
+    const over = Math.max(0, Math.min(list.length - 1, p.index + Math.round(dx / WANT_STEP)))
     setDrag({ index: p.index, over, dx })
-  }
+  }, [])
 
   // near the edges the row scrolls along while dragging
-  const autoScroll = () => {
+  const autoScroll = useCallback(() => {
     const p = press.current, row = rowRef.current
-    if (!p || !row || !dragRef.current) return
+    if (!p || p.phase !== 'drag' || !row) return
     const r = row.getBoundingClientRect()
     const v = p.lastX < r.left + 40 ? -8 : p.lastX > r.right - 40 ? 8 : 0
     if (v) {
@@ -305,56 +298,121 @@ function Wantlist() {
       update(p.lastX)
     }
     auto.current = requestAnimationFrame(autoScroll)
-  }
+  }, [update])
 
-  const onPointerDown = (e, index) => {
-    if (e.button > 0) return
+  const begin = useCallback((index, x, y) => {
     const row = rowRef.current
-    const p = { index, x: e.clientX, lastX: e.clientX, startScroll: row.scrollLeft, pointerId: e.pointerId }
+    if (!row) return
+    clearTimeout(press.current?.timer)
+    const p = { phase: 'wait', index, x, y, lastX: x, startScroll: row.scrollLeft }
     p.timer = setTimeout(() => {
-      press.current = p
-      try { row.setPointerCapture(p.pointerId) } catch {}
+      if (press.current !== p) return
+      p.phase = 'drag'
+      p.startScroll = row.scrollLeft
       navigator.vibrate?.(10)
       setDrag({ index, over: index, dx: 0 })
       auto.current = requestAnimationFrame(autoScroll)
     }, HOLD_MS)
-    press.current = { ...p, waiting: true }
-  }
+    press.current = p
+  }, [autoScroll])
 
-  const onPointerMove = (e) => {
+  /** Returns true while a cover is being dragged (then the page must not scroll). */
+  const move = useCallback((x, y) => {
     const p = press.current
-    if (!p) return
-    if (p.waiting) {
+    if (!p) return false
+    if (p.phase === 'wait') {
       // moved before the hold time: it is a scroll or a tap, not a drag
-      if (Math.abs(e.clientX - p.x) > 8 || Math.abs(e.clientY - (p.y ?? e.clientY)) > 8) {
+      if (Math.abs(x - p.x) > 10 || Math.abs(y - p.y) > 10) {
         clearTimeout(p.timer)
         press.current = null
       }
-      return
+      return false
     }
-    update(e.clientX)
-  }
+    update(x)
+    return true
+  }, [update])
 
-  const finish = async () => {
+  const finish = useCallback(async () => {
     const p = press.current
     press.current = null
-    if (p?.timer) clearTimeout(p.timer)
+    if (!p) return false
+    clearTimeout(p.timer)
     cancelAnimationFrame(auto.current)
-    const d = dragRef.current
-    if (!d) return
+    if (p.phase !== 'drag') return false
+    const row = rowRef.current, list = wantsRef.current
+    const dx = p.lastX - p.x + ((row?.scrollLeft ?? p.startScroll) - p.startScroll)
+    const over = Math.max(0, Math.min(list.length - 1, p.index + Math.round(dx / WANT_STEP)))
     setDrag(null)
     justDragged.current = true
-    setTimeout(() => (justDragged.current = false), 50)
-    if (d.over === d.index) return
-    const next = [...wants]
-    const [moved] = next.splice(d.index, 1)
-    next.splice(d.over, 0, moved)
-    try {
-      await updateProfile({ want_order: next.map((w) => w.discogs_release_id) })
-    } catch (err) {
-      alert('Reihenfolge nicht gespeichert: ' + err.message + '\n\nFalls die Spalte fehlt: Das SQL-Update in Supabase muss noch ausgeführt werden.')
+    setTimeout(() => (justDragged.current = false), 400)
+    if (over !== p.index) {
+      const next = [...list]
+      const [moved] = next.splice(p.index, 1)
+      next.splice(over, 0, moved)
+      updateProfile({ want_order: next.map((w) => w.discogs_release_id) }).catch((err) =>
+        alert('Reihenfolge nicht gespeichert: ' + err.message + '\n\nFalls die Spalte fehlt: Das SQL-Update in Supabase muss noch ausgeführt werden.'),
+      )
     }
+    return true
+  }, [updateProfile])
+
+  // iPhone: plain touch events instead of pointer events. iOS cancels pointer events as soon
+  // as it thinks a scroll starts, which made the drag work only sometimes. A touchmove that is
+  // cancelled from the very start of the drag reliably keeps the row and the page still.
+  useEffect(() => {
+    const row = rowRef.current
+    if (!row) return
+    const onStart = (e) => {
+      if (e.touches.length > 1) return finish()
+      const el = e.target.closest?.('.want')
+      if (!el || !row.contains(el)) return
+      const t = e.touches[0]
+      begin(Number(el.dataset.index), t.clientX, t.clientY)
+    }
+    const onMove = (e) => {
+      const t = e.touches[0]
+      if (t && move(t.clientX, t.clientY) && e.cancelable) e.preventDefault()
+    }
+    const onEnd = async (e) => {
+      const p = press.current
+      if (p?.phase === 'drag' && e.cancelable) e.preventDefault() // no tap on the cover after a drag
+      await finish()
+    }
+    // the row scrolled while waiting: that was a swipe, not a hold
+    const onScroll = () => {
+      const p = press.current
+      if (p?.phase === 'wait' && Math.abs(row.scrollLeft - p.startScroll) > 4) {
+        clearTimeout(p.timer)
+        press.current = null
+      }
+    }
+    row.addEventListener('touchstart', onStart, { passive: true })
+    row.addEventListener('touchmove', onMove, { passive: false })
+    row.addEventListener('touchend', onEnd, { passive: false })
+    row.addEventListener('touchcancel', onEnd)
+    row.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      row.removeEventListener('touchstart', onStart)
+      row.removeEventListener('touchmove', onMove)
+      row.removeEventListener('touchend', onEnd)
+      row.removeEventListener('touchcancel', onEnd)
+      row.removeEventListener('scroll', onScroll)
+    }
+  }, [wants?.length, begin, move, finish])
+
+  // mouse (computer): the same with pointer events
+  const isMouse = (e) => e.pointerType === 'mouse' || e.pointerType === 'pen'
+  const onPointerDown = (e, index) => {
+    if (!isMouse(e) || e.button > 0) return
+    begin(index, e.clientX, e.clientY)
   }
+  const onPointerMove = (e) => {
+    if (!isMouse(e)) return
+    const p = press.current
+    if (p?.phase === 'drag') rowRef.current?.setPointerCapture?.(e.pointerId)
+    move(e.clientX, e.clientY)
+  }
+  const onPointerUp = (e) => isMouse(e) && finish()
 
   const shift = (i) => {
     if (!drag || i === drag.index) return 0
@@ -374,8 +432,8 @@ function Wantlist() {
           ref={rowRef}
           className={'want-row' + (drag ? ' sorting' : '')}
           onPointerMove={onPointerMove}
-          onPointerUp={finish}
-          onPointerCancel={finish}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
         >
           {wants.map((w, i) => (
             <Link
@@ -383,11 +441,9 @@ function Wantlist() {
               to={`/release/${w.discogs_release_id}`}
               className={'want' + (drag?.index === i ? ' lifted' : '')}
               style={drag ? { transform: `translateX(${drag.index === i ? drag.dx : shift(i)}px)` } : undefined}
+              data-index={i}
               draggable={false}
-              onPointerDown={(e) => {
-                onPointerDown(e, i)
-                if (press.current) press.current.y = e.clientY
-              }}
+              onPointerDown={(e) => onPointerDown(e, i)}
               onContextMenu={(e) => e.preventDefault()}
               onClick={(e) => justDragged.current && e.preventDefault()}
             >

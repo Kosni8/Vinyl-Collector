@@ -13,7 +13,7 @@ import { SIZES } from '../lib/format.js'
 // The barcode library is large, so it is only loaded when the scanner opens.
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner.jsx'))
 
-const memory = { q: '', barcode: null, results: [], page: 1, pages: 0, country: '', sizes: [], autorun: false }
+const memory = { q: '', barcode: null, results: [], page: 1, pages: 0, country: '', sizes: [], autorun: false, scrollY: 0 }
 
 /** Opens the search with this query already typed in and searched. */
 export function startSearch(q) {
@@ -29,6 +29,7 @@ export function clearSearch() {
 // Values as Discogs writes them in the "country" field of a release.
 const REGIONS = [
   ['', 'Alle Länder'],
+  ['Worldwide', 'Worldwide'],
   ['Europe', 'Europa'],
   ['UK & Europe', 'UK & Europa'],
   ['Germany', 'Deutschland'],
@@ -67,6 +68,18 @@ export default function Search() {
   }, [])
   Object.assign(memory, { q, barcode, results, page, pages, country, sizes })
 
+  // Back from a record: return to the same place in the list instead of the top.
+  useEffect(() => {
+    const y = memory.scrollY
+    if (y > 0 && memory.results.length) {
+      // after the list is drawn (and after the app's scroll-to-top on page change)
+      requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, y)))
+    }
+    const save = () => (memory.scrollY = window.scrollY)
+    window.addEventListener('scroll', save, { passive: true })
+    return () => window.removeEventListener('scroll', save)
+  }, [])
+
   const owned = useMemo(() => {
     const m = new Map()
     items.forEach((i) => m.set(i.discogs_release_id, (m.get(i.discogs_release_id) ?? 0) + 1))
@@ -98,6 +111,7 @@ export default function Search() {
         const match = exact.length === 1 ? exact[0] : rows.length === 1 ? rows[0] : null
         if (match) navigate(`/release/${match.discogs_release_id}`)
       }
+      if (p === 1) memory.scrollY = 0
       setResults((prev) => (p > 1 ? [...prev, ...rows] : rows))
       setPage(p)
       setPages(data.pagination?.pages ?? 1)

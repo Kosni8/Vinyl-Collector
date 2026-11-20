@@ -21,10 +21,20 @@ export default function RecordRow({ to, item, owned, wanted, fav }) {
         <div className="record-title">{item.title}</div>
         {isCopy && item.signed && <span className="signed-dot" title="Signiert" aria-label="Signiert">✍︎</span>}
         <div className="record-artist">{item.artist}</div>
-        <div className="record-meta">
-          {[item.year || null, item.country].filter(Boolean).join(' · ')}
-        </div>
-        <div className="record-meta ellipsis">{isCopy ? formatShort(item) : item.format}</div>
+        {isCopy ? (
+          <>
+            <div className="record-meta">{[item.year || null, item.country].filter(Boolean).join(' · ')}</div>
+            <div className="record-meta ellipsis">{formatShort(item)}</div>
+          </>
+        ) : (
+          <>
+            {/* search result: like Discogs, formats + edition / colour text, then year, country, label */}
+            {item.formatDesc && <div className="record-format">{item.formatDesc}</div>}
+            {item.edition && <div className="record-edition">{item.edition}</div>}
+            <div className="record-meta">{[item.year || null, item.country].filter(Boolean).join(' · ')}</div>
+            {item.label && <div className="record-meta ellipsis">{[item.label, item.catno].filter(Boolean).join(' – ')}</div>}
+          </>
+        )}
         {item.vinyl_color_name && <VinylColorLabel item={item} showSigned={false} />}
         {owned > 0 && <span className="badge owned">In Sammlung{owned > 1 ? ` (${owned}×)` : ''}</span>}
         {wanted && <span className="badge wanted">♥ Wantlist</span>}

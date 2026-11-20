@@ -68,6 +68,11 @@ export function fromSearchResult(r) {
   const fmt = r.format ?? []
   const vinylIdx = fmt.indexOf('Vinyl')
   const details = fmt.filter((f, i) => i !== vinylIdx && f !== 'Vinyl')
+  // Newer search results carry the full formats (descriptions + free text such as
+  // "Blue Splatter [Static Lover], Pop Up Sleeve"), like Discogs shows them.
+  const vinylFormats = (r.formats ?? []).filter((f) => f.name === 'Vinyl')
+  const formatDesc = [...new Set(vinylFormats.flatMap((f) => f.descriptions ?? []))]
+  const edition = [...new Set(vinylFormats.map((f) => f.text?.trim()).filter(Boolean))].join(' · ')
   return {
     discogs_release_id: r.id,
     title: rest.length ? rest.join(' - ') : artist,
@@ -76,6 +81,9 @@ export function fromSearchResult(r) {
     format: `Vinyl${details.length ? ` (${details.join(', ')})` : ''}`,
     country: r.country,
     label: r.label?.[0],
+    catno: r.catno && r.catno !== 'none' ? r.catno : null,
+    formatDesc: formatDesc.length ? formatDesc.join(', ') : details.filter((d) => d !== edition).join(', '),
+    edition: edition || null,
     cover_url: r.cover_image,
     thumb_url: r.thumb,
     barcodes: (r.barcode ?? []).map((b) => b.replace(/\D/g, '')),
