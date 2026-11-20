@@ -38,6 +38,7 @@ export const VINYL_PATTERNS = [
   { id: 'liquid', name: 'Liquid Filled' },
   { id: 'filled', name: 'Filled (anderes)' },
   { id: 'picture', name: 'Picture Disc' },
+  { id: 'zoetrope', name: 'Zoetrope' },
 ]
 
 /**

@@ -81,7 +81,6 @@ export function fromSearchResult(r) {
     format: `Vinyl${details.length ? ` (${details.join(', ')})` : ''}`,
     country: r.country,
     label: r.label?.[0],
-    catno: r.catno && r.catno !== 'none' ? r.catno : null,
     formatDesc: formatDesc.length ? formatDesc.join(', ') : details.filter((d) => d !== edition).join(', '),
     edition: edition || null,
     cover_url: r.cover_image,

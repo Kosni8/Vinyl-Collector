@@ -28,11 +28,10 @@ export default function RecordRow({ to, item, owned, wanted, fav }) {
           </>
         ) : (
           <>
-            {/* search result: like Discogs, formats + edition / colour text, then year, country, label */}
+            {/* search result: like Discogs, formats + edition / colour text, then year and country */}
             {item.formatDesc && <div className="record-format">{item.formatDesc}</div>}
             {item.edition && <div className="record-edition">{item.edition}</div>}
             <div className="record-meta">{[item.year || null, item.country].filter(Boolean).join(' · ')}</div>
-            {item.label && <div className="record-meta ellipsis">{[item.label, item.catno].filter(Boolean).join(' – ')}</div>}
           </>
         )}
         {item.vinyl_color_name && <VinylColorLabel item={item} showSigned={false} />}
