@@ -28,8 +28,8 @@ export function clearSearch() {
 
 // Values as Discogs writes them in the "country" field of a release.
 const REGIONS = [
-  ['', 'Alle Länder'],
   ['Worldwide', 'Worldwide'],
+  ['', 'Alle Länder'],
   ['Europe', 'Europa'],
   ['UK & Europe', 'UK & Europa'],
   ['Germany', 'Deutschland'],
@@ -38,10 +38,6 @@ const REGIONS = [
   ['USA & Europe', 'USA & Europa'],
   ['Canada', 'Kanada'],
   ['Japan', 'Japan'],
-  ['Australia', 'Australien'],
-  ['France', 'Frankreich'],
-  ['Netherlands', 'Niederlande'],
-  ['Italy', 'Italien'],
 ]
 
 export default function Search() {
