@@ -1,6 +1,6 @@
 // Minimal service worker: makes the app installable and keeps the app shell
 // available offline. API calls (Supabase, Discogs) always go to the network.
-const CACHE = 'vinyl-shell-v1'
+const CACHE = 'vinyl-shell-v2'
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => {
@@ -15,9 +15,10 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET' || url.origin !== self.location.origin) return
 
   if (req.mode === 'navigate') {
-    // network first, so updates show up immediately
+    // network first, so updates show up immediately ('no-cache': ask the server every time
+    // instead of using a page the browser kept for a few minutes)
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-cache' })
         .then((res) => {
           const copy = res.clone()
           caches.open(CACHE).then((c) => c.put(req, copy))
