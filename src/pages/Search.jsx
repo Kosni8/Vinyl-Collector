@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../lib/store.jsx'
 import { searchVinyl, searchBarcode, fromSearchResult } from '../lib/discogs.js'
@@ -28,8 +28,8 @@ export function clearSearch() {
 
 // Values as Discogs writes them in the "country" field of a release.
 const REGIONS = [
-  ['Worldwide', 'Worldwide'],
   ['', 'Alle Länder'],
+  ['Worldwide', 'Worldwide'],
   ['Europe', 'Europa'],
   ['UK & Europe', 'UK & Europa'],
   ['Germany', 'Deutschland'],
@@ -65,15 +65,29 @@ export default function Search() {
   Object.assign(memory, { q, barcode, results, page, pages, country, sizes })
 
   // Back from a record: return to the same place in the list instead of the top.
-  useEffect(() => {
-    const y = memory.scrollY
-    if (y > 0 && memory.results.length) {
-      // after the list is drawn (and after the app's scroll-to-top on page change)
-      requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, y)))
+  // The position is taken when leaving, in a layout effect: that runs before the next page
+  // replaces the list, so the browser has not jumped to the top yet. (Scroll events were not
+  // reliable: page changes run as transitions, and the jump to the top could be saved first.)
+  const restoreY = useRef(memory.results.length ? memory.scrollY : 0)
+  useLayoutEffect(() => {
+    if (restoreY.current > 0) window.scrollTo(0, restoreY.current)
+    return () => {
+      memory.scrollY = window.scrollY
     }
-    const save = () => (memory.scrollY = window.scrollY)
-    window.addEventListener('scroll', save, { passive: true })
-    return () => window.removeEventListener('scroll', save)
+  }, [])
+  // again after the app's scroll-to-top on page change (it runs before this) and once more
+  // after the next frames, when everything is laid out
+  useEffect(() => {
+    const y = restoreY.current
+    if (!(y > 0)) return
+    window.scrollTo(0, y)
+    let n = 0
+    const again = () => {
+      if (Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y)
+      if (++n < 3) raf = requestAnimationFrame(again)
+    }
+    let raf = requestAnimationFrame(again)
+    return () => cancelAnimationFrame(raf)
   }, [])
 
   const owned = useMemo(() => {
