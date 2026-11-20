@@ -31,6 +31,10 @@ img { display: block; max-width: 100%; }
 
 main { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 16px); }
 .page { padding: calc(var(--safe-top) + 4px) 16px 0; max-width: 640px; margin: 0 auto; }
+/* iOS 26 home-screen apps run under the status bar and iOS lays its own blur over the top
+   edge. WebKit leaves it out when a real fixed, full-width element with a solid background
+   colour covers the top edge (it hit-tests just below the edge, so no pointer-events: none). */
+.status-strip { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-top); background-color: var(--bg); z-index: 30; }
 .page-header h1 { font-size: 32px; margin: 6px 0 2px; letter-spacing: -0.02em; }
 .muted { color: var(--muted); }
 .small { font-size: 13px; }

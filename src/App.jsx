@@ -15,8 +15,27 @@ function ScrollToTop() {
   const { pathname } = useLocation()
   useEffect(() => {
     window.scrollTo(0, 0)
+    // iOS 26 only works out whether to blur the top edge when the page scrolls (a scroll
+    // down and up made the blur go away), so give it a tiny scroll after each page change.
+    const t = setTimeout(() => {
+      if (window.scrollY > 2) return // the page restored its own position (search)
+      document.documentElement.style.minHeight = 'calc(100dvh + 2px)'
+      window.scrollTo(0, 1)
+      requestAnimationFrame(() => {
+        if (window.scrollY <= 1) window.scrollTo(0, 0)
+        document.documentElement.style.minHeight = ''
+      })
+    }, 120)
+    return () => clearTimeout(t)
   }, [pathname])
   return null
+}
+
+/** Solid strip behind the clock on the list pages (see .status-strip); home shows its own top. */
+function StatusStrip() {
+  const { pathname } = useLocation()
+  if (pathname === '/' || pathname.startsWith('/release/') || /^\/sammlung\/./.test(pathname)) return null
+  return <div className="status-strip" aria-hidden="true" />
 }
 
 function Shell() {
@@ -32,6 +51,7 @@ function Shell() {
   return (
     <>
       <ScrollToTop />
+      <StatusStrip />
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
