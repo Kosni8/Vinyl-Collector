@@ -435,7 +435,11 @@ textarea.text-input { resize: vertical; }
 .settings-gap { margin-top: 22px !important; }
 /* copies: price in the bottom right corner, signed dot in the top right corner,
    so the title and the other lines can use the full width */
-.record-row.copy { position: relative; }
+.record-row.copy, .record-row.expandable { position: relative; }
+/* "Mehr Infos" bottom right of a search result: opens formats and edition / colour */
+.record-row.expandable .record-info > :last-child { margin-right: 84px; }
+.more-btn { position: absolute; right: 8px; bottom: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.more-btn svg { transition: transform 0.15s; }
 .record-row.copy .record-value { position: absolute; right: 12px; bottom: 10px; }
 .record-row.copy .record-info > :last-child { padding-right: 84px; }
 .record-row.signed .record-title { padding-right: 30px; }
