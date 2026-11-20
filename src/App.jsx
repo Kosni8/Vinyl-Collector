@@ -19,6 +19,13 @@ function ScrollToTop() {
   return null
 }
 
+/** Solid strip behind the clock on the list pages (see .status-strip); home and detail pages show their picture there. */
+function StatusStrip() {
+  const { pathname } = useLocation()
+  if (pathname === '/' || pathname.startsWith('/release/') || /^\/sammlung\/./.test(pathname)) return null
+  return <div className="status-strip" aria-hidden="true" />
+}
+
 function Shell() {
   const { profile, error } = useData()
   if (!profile) {
@@ -32,6 +39,7 @@ function Shell() {
   return (
     <>
       <ScrollToTop />
+      <StatusStrip />
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
