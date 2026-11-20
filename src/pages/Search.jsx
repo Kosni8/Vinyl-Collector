@@ -75,19 +75,30 @@ export default function Search() {
       memory.scrollY = window.scrollY
     }
   }, [])
-  // again after the app's scroll-to-top on page change (it runs before this) and once more
-  // after the next frames, when everything is laid out
+  // Again after the app's scroll-to-top on page change (it runs before this), and for a
+  // moment longer: iOS can ignore a scroll while the page is still being laid out.
+  // A touch by the user ends it at once.
   useEffect(() => {
     const y = restoreY.current
     if (!(y > 0)) return
-    window.scrollTo(0, y)
-    let n = 0
+    let raf = 0
+    let stop = false
+    const end = () => (stop = true)
+    window.addEventListener('touchstart', end, { passive: true, once: true })
+    window.addEventListener('wheel', end, { passive: true, once: true })
+    const started = performance.now()
     const again = () => {
+      if (stop) return
       if (Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y)
-      if (++n < 3) raf = requestAnimationFrame(again)
+      if (performance.now() - started < 700) raf = requestAnimationFrame(again)
     }
-    let raf = requestAnimationFrame(again)
-    return () => cancelAnimationFrame(raf)
+    again()
+    return () => {
+      stop = true
+      cancelAnimationFrame(raf)
+      window.removeEventListener('touchstart', end)
+      window.removeEventListener('wheel', end)
+    }
   }, [])
 
   const owned = useMemo(() => {
@@ -251,7 +262,7 @@ export default function Search() {
       {!loading && !error && (q || barcode) && !shown.length && <p className="muted center">Keine Vinyls gefunden.</p>}
       {!q && !barcode && !results.length && <p className="muted center">Suche nach Album oder Künstler, oder scanne den Barcode auf der Rückseite der Platte.</p>}
 
-      <div className="record-list">
+      <div className="record-list" onClickCapture={() => (memory.scrollY = window.scrollY)}>
         {shown.map((r, i) => (
           <RecordRow key={r.discogs_release_id + '-' + i} to={`/release/${r.discogs_release_id}`} item={r} owned={owned.get(r.discogs_release_id)} wanted={isWanted(wants, r.discogs_release_id)} />
         ))}

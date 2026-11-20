@@ -244,6 +244,7 @@ function Settings({ open, onClose, onEdit }) {
         {progress ? `Preise aktualisieren: ${progress.done + 1} / ${progress.total}` : 'Alle Preise aktualisieren'}
       </button>
       <button className="btn danger block" onClick={() => supabase.auth.signOut()}>Abmelden</button>
+      <p className="muted small app-version">Version vom {typeof __BUILD__ !== 'undefined' ? __BUILD__ : '–'}</p>
     </Sheet>
   )
 }
