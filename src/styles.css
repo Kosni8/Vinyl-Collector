@@ -31,11 +31,6 @@ img { display: block; max-width: 100%; }
 
 main { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 16px); }
 .page { padding: calc(var(--safe-top) + 4px) 16px 0; max-width: 640px; margin: 0 auto; }
-/* The status bar is see-through (so the home banner shows behind the clock). On the other
-   pages a real fixed element in the page colour sits behind the clock: iOS 26 draws its own
-   blur over the top of a home-screen app unless a full-width fixed box with a solid
-   background colour covers the top edge (a ::before was not enough; it must also take taps, so no pointer-events: none). */
-.status-strip { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-top); background-color: var(--bg); z-index: 30; }
 .page-header h1 { font-size: 32px; margin: 6px 0 2px; letter-spacing: -0.02em; }
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
@@ -102,10 +97,9 @@ textarea.text-input { resize: vertical; }
 /* ---------- home ---------- */
 .home { padding: 0; max-width: 640px; min-height: 100dvh; background: var(--home-bg, var(--bg)); color: var(--home-ink, var(--ink)); --home-muted: var(--muted); }
 .home.dark { --home-muted: rgba(255, 255, 255, 0.65); }
-/* 5:2 below the status bar, the same shape as the crop frame. The picture reaches up behind the
-   status bar (black-translucent), so the very top shows the picture itself, sharp. */
-.banner { position: relative; display: block; width: 100%; height: calc(min(32vw, 205px) + var(--safe-top)); background: #d8cfc3; overflow: hidden; border-bottom: 3px solid var(--ink); }
-.banner img { width: 100%; height: 100%; object-fit: cover; object-position: center bottom; }
+/* 5:2, the same shape as the crop frame, so the picture looks exactly as cropped */
+.banner { position: relative; display: block; width: 100%; height: min(32vw, 205px); background: #d8cfc3; overflow: hidden; border-bottom: 3px solid var(--ink); }
+.banner img { width: 100%; height: 100%; object-fit: cover; }
 .banner-empty { position: absolute; inset: 0; display: grid; place-items: center; color: #6c645b; font-weight: 600; padding-top: var(--safe-top);
   background: repeating-linear-gradient(135deg, #e6ddd1 0 12px, #ddd3c6 12px 24px); }
 .uploading { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, 0.4); color: #fff; font-weight: 600; }
