@@ -259,6 +259,51 @@ function PatternFill({ uid, colors, pattern, cover, seedText, overlay = false })
         </>
       )
     }
+    case 'zoetrope': { // rings of little figures, each one the next frame of a small animation
+      // colour 1 = background, colour 2 = outermost and second innermost ring, colour 3 = the other two
+      const ca = c1 ?? contrast(c0), cb = c2 ?? ca
+      const marks = []
+      const frame = (i) => ((i % 8) / 8) * Math.PI * 2
+      const deg = (a) => (a * 180) / Math.PI
+      // outermost: bouncing balls with their shadow
+      for (let i = 0, n = 30; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 - Math.PI / 2
+        const [x, y] = polar(42.4 + Math.abs(Math.sin(frame(i))) * 3.2, a)
+        const [sx, sy] = polar(41.4, a)
+        marks.push(<circle key={`b${i}`} cx={x} cy={y} r="1.5" fill={ca} />)
+        marks.push(<ellipse key={`s${i}`} cx={sx} cy={sy} rx="1.3" ry="0.4" transform={`rotate(${deg(a) + 90} ${sx} ${sy})`} fill={ca} opacity="0.35" />)
+      }
+      // second from outside: stars growing and turning
+      for (let i = 0, n = 24; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 - Math.PI / 2, ph = frame(i)
+        const [x, y] = polar(36.5, a)
+        const sc = 0.7 + 0.25 * (1 + Math.sin(ph))
+        let d = ''
+        for (let j = 0; j < 10; j++) {
+          const rr = (j % 2 ? 1 : 2.2) * sc, aa = (j / 10) * Math.PI * 2 + ph / 2
+          d += (j ? 'L' : 'M') + (x + rr * Math.cos(aa)).toFixed(2) + ' ' + (y + rr * Math.sin(aa)).toFixed(2)
+        }
+        marks.push(<path key={`t${i}`} d={d + 'Z'} fill={cb} />)
+      }
+      // second from inside: petals turning over
+      for (let i = 0, n = 18; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 - Math.PI / 2
+        const [x, y] = polar(29, a)
+        marks.push(<ellipse key={`p${i}`} cx={x} cy={y} rx="2.4" ry="0.9" transform={`rotate(${deg(a) + 90 + deg(frame(i)) / 2} ${x} ${y})`} fill={ca} />)
+      }
+      // innermost: dots pulsing
+      for (let i = 0, n = 13; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 - Math.PI / 2
+        const [x, y] = polar(22.5, a)
+        marks.push(<circle key={`d${i}`} cx={x} cy={y} r={0.6 + 0.4 * (1 + Math.cos(frame(i)))} fill={cb} />)
+      }
+      return (
+        <>
+          {base(c0)}
+          {marks}
+        </>
+      )
+    }
     default: // solid; several colours become equal sectors
       return colors.length > 1 ? (
         colors.map((c, i) => <path key={i} d={sectorPath(i, colors.length)} fill={c} />)

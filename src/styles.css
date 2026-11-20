@@ -97,9 +97,10 @@ textarea.text-input { resize: vertical; }
 /* ---------- home ---------- */
 .home { padding: 0; max-width: 640px; min-height: 100dvh; background: var(--home-bg, var(--bg)); color: var(--home-ink, var(--ink)); --home-muted: var(--muted); }
 .home.dark { --home-muted: rgba(255, 255, 255, 0.65); }
-/* 5:2, the same shape as the crop frame, so the picture looks exactly as cropped */
-.banner { position: relative; display: block; width: 100%; height: min(32vw, 205px); background: #d8cfc3; overflow: hidden; border-bottom: 3px solid var(--ink); }
-.banner img { width: 100%; height: 100%; object-fit: cover; }
+/* 5:2 below the status bar, the same shape as the crop frame. The picture reaches up behind the
+   status bar (black-translucent), so the very top shows the picture itself, sharp. */
+.banner { position: relative; display: block; width: 100%; height: calc(min(32vw, 205px) + var(--safe-top)); background: #d8cfc3; overflow: hidden; border-bottom: 3px solid var(--ink); }
+.banner img { width: 100%; height: 100%; object-fit: cover; object-position: center bottom; }
 .banner-empty { position: absolute; inset: 0; display: grid; place-items: center; color: #6c645b; font-weight: 600; padding-top: var(--safe-top);
   background: repeating-linear-gradient(135deg, #e6ddd1 0 12px, #ddd3c6 12px 24px); }
 .uploading { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, 0.4); color: #fff; font-weight: 600; }
@@ -189,6 +190,9 @@ textarea.text-input { resize: vertical; }
 .record-title { font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .record-artist { color: #4d4741; font-size: 14px; }
 .record-meta { color: var(--muted); font-size: 13px; }
+.record-format { color: #4d4741; font-size: 13px; margin-top: 3px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* edition / colour as Discogs writes it, e.g. "Blue Splatter [Static Lover], Pop Up Sleeve" */
+.record-edition { color: var(--ink); font-size: 13px; font-style: italic; font-weight: 500; line-height: 1.3; margin-bottom: 2px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
 .record-value { align-self: flex-end; font-weight: 700; font-size: 14px; white-space: nowrap; }
 
 .vinyl-label { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-top: 3px; min-width: 0; }
@@ -265,7 +269,8 @@ textarea.text-input { resize: vertical; }
 .want-row::-webkit-scrollbar { display: none; }
 .want { flex: 0 0 120px; display: grid; gap: 2px; scroll-snap-align: start; min-width: 0; }
 /* press and hold a cover to drag it to another place */
-.want { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; position: relative; }
+.want { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; position: relative; }
+.want img { -webkit-user-drag: none; pointer-events: none; }
 .want-row.sorting { scroll-snap-type: none; }
 .want-row.sorting .want { transition: transform 0.18s ease; }
 .want-row.sorting .want.lifted { transition: none; z-index: 2; }
@@ -430,7 +435,11 @@ textarea.text-input { resize: vertical; }
 .settings-gap { margin-top: 22px !important; }
 /* copies: price in the bottom right corner, signed dot in the top right corner,
    so the title and the other lines can use the full width */
-.record-row.copy { position: relative; }
+.record-row.copy, .record-row.expandable { position: relative; }
+/* "Mehr Infos" bottom right of a search result: opens formats and edition / colour */
+.record-row.expandable .record-info > :last-child { margin-right: 84px; }
+.more-btn { position: absolute; right: 8px; bottom: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.more-btn svg { transition: transform 0.15s; }
 .record-row.copy .record-value { position: absolute; right: 12px; bottom: 10px; }
 .record-row.copy .record-info > :last-child { padding-right: 84px; }
 .record-row.signed .record-title { padding-right: 30px; }
