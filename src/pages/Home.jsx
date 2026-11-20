@@ -244,9 +244,21 @@ function Settings({ open, onClose, onEdit }) {
         {progress ? `Preise aktualisieren: ${progress.done + 1} / ${progress.total}` : 'Alle Preise aktualisieren'}
       </button>
       <button className="btn danger block" onClick={() => supabase.auth.signOut()}>Abmelden</button>
-      <p className="muted small app-version">Version vom {typeof __BUILD__ !== 'undefined' ? __BUILD__ : '–'}</p>
+      <p className="muted small app-version">
+        Version vom {typeof __BUILD__ !== 'undefined' ? __BUILD__ : '–'} · Abstand oben {safeTop()} px
+      </p>
     </Sheet>
   )
+}
+
+/** Height of the area iOS keeps free at the top (0 when the status bar sits above the app). */
+function safeTop() {
+  const el = document.createElement('div')
+  el.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top,0px);visibility:hidden'
+  document.body.appendChild(el)
+  const h = Math.round(el.getBoundingClientRect().height)
+  el.remove()
+  return h
 }
 
 const WANT_STEP = 132 // cover width 120 + gap 12

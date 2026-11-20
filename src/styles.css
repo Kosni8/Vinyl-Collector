@@ -30,12 +30,8 @@ a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
 
 main { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 16px); }
-.page { padding: calc(var(--safe-top) + 4px) 16px 0; max-width: 640px; margin: 0 auto; }
-/* iOS 26 home-screen apps run under the status bar and iOS lays its own blur over the top
-   edge. WebKit leaves it out when a real fixed, full-width element with a solid background
-   colour covers the top edge (it hit-tests just below the edge, so no pointer-events: none). */
-.status-strip { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-top); background-color: var(--bg); z-index: 30; }
-.page-header h1 { font-size: 32px; margin: 6px 0 2px; letter-spacing: -0.02em; }
+.page { padding: calc(var(--safe-top) + 8px) 16px 0; max-width: 640px; margin: 0 auto; }
+.page-header h1 { font-size: 32px; margin: 12px 0 2px; letter-spacing: -0.02em; }
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
 .center { text-align: center; padding: 24px 8px; }
@@ -85,7 +81,7 @@ textarea.text-input { resize: vertical; }
 .badge.owned { background: #dcefdc; margin: 4px 0 0; align-self: flex-start; }
 
 .toolbar { display: grid; gap: 8px; padding: 8px 0 12px; }
-.toolbar.sticky { position: sticky; top: var(--safe-top); z-index: 5; background: var(--bg); }
+.toolbar.sticky { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-top: calc(var(--safe-top) + 8px); margin-top: calc(-1 * var(--safe-top)); }
 
 /* ---------- tab bar ---------- */
 .tabbar {
@@ -396,7 +392,7 @@ textarea.text-input { resize: vertical; }
 .chip.on .vinyl-art { border-radius: 50%; box-shadow: 0 0 0 1.5px var(--bg); }
 .chip.on .vinyl-art.shaped { border-radius: 0; box-shadow: none; }
 .page-header { position: relative; }
-.header-action { position: absolute; right: 0; top: 0; width: auto; min-width: 44px; padding: 0 10px; font-weight: 700; }
+.header-action { position: absolute; right: 0; top: 2px; width: auto; min-width: 44px; padding: 0 10px; font-weight: 700; }
 .header-action:disabled { opacity: 1; }
 .search-field { position: relative; flex: 1; min-width: 0; }
 .search-field .search-input { padding-right: 40px; }
