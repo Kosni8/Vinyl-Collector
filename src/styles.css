@@ -31,9 +31,11 @@ img { display: block; max-width: 100%; }
 
 main { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 16px); }
 .page { padding: calc(var(--safe-top) + 4px) 16px 0; max-width: 640px; margin: 0 auto; }
-/* the status bar is see-through (so the home banner shows behind the clock); on the other
-   pages a strip in the page colour keeps scrolled content from running under the clock */
-.page::before { content: ''; position: fixed; top: 0; left: 0; right: 0; height: var(--safe-top); background: var(--bg); z-index: 6; }
+/* The status bar is see-through (so the home banner shows behind the clock). On the other
+   pages a real fixed element in the page colour sits behind the clock: iOS 26 draws its own
+   blur over the top of a home-screen app unless a full-width fixed box with a solid
+   background colour covers the top edge (a ::before was not enough; it must also take taps, so no pointer-events: none). */
+.status-strip { position: fixed; top: 0; left: 0; right: 0; height: var(--safe-top); background-color: var(--bg); z-index: 30; }
 .page-header h1 { font-size: 32px; margin: 6px 0 2px; letter-spacing: -0.02em; }
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
@@ -205,7 +207,6 @@ textarea.text-input { resize: vertical; }
 
 /* ---------- detail ---------- */
 .detail { padding: 0; }
-.page.detail::before { display: none; }
 .back-btn { position: fixed; z-index: 10; top: calc(var(--safe-top) + 10px); left: 12px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, 0.9); display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
 .gallery-wrap { position: relative; background: #eee5da; }
 .gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
